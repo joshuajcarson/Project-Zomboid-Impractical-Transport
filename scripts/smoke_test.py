@@ -92,16 +92,21 @@ def stage_play(keep):
         # /addvehicle is the documented admin command (pzwiki Admin_commands).
         bot("smokechat", f'/addvehicle "{v}" "{USER}"')
         time.sleep(3)
-    # ride check: equip the pogo stick, expect the riding flag in the client log, then walk and report the speed
+    # speed check: bare hands first, then the pogo stick, same distance in opposite directions
+    def pos():
+        return next(p for p in ch.wait_obs(timeout=10)["p"] if p["u"] == USER)
+    def speed(dx):
+        p0 = pos(); bot("goto", f"{p0['x'] + dx:.1f}", f"{p0['y']:.1f}"); t0 = time.time(); time.sleep(8)
+        p1 = pos(); return math.hypot(p1["x"] - p0["x"], p1["y"] - p0["y"]) / (time.time() - t0)
+    bot("smokeunequip"); time.sleep(2)
+    walk = speed(12)
     bot("equip", "PogoStick"); time.sleep(4)
     logs = sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)
     "ImpracticalTransport riding=true" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("riding flag never set (see client log)")
-    def pos():
-        return next(p for p in ch.wait_obs(timeout=10)["p"] if p["u"] == USER)
-    p0 = pos(); bot("goto", f"{p0['x'] + 12:.1f}", f"{p0['y']:.1f}"); t0 = time.time(); time.sleep(8)
-    p1 = pos(); moved = math.hypot(p1["x"] - p0["x"], p1["y"] - p0["y"])
-    print(f"ride: moved {moved:.1f} tiles in {time.time() - t0:.0f}s = {moved / (time.time() - t0):.2f} tiles/s")
-    moved > 0.5 or fail("rider did not move")
+    pogo = speed(-12)
+    print(f"speed: walking {walk:.2f} tiles/s, pogo {pogo:.2f} tiles/s ({pogo / walk:.0%} of walking)")
+    pogo > 0.1 or fail("rider did not move")
+    pogo < walk or fail("pogo is not slower than walking")
     print("play ready: god mode on, dressed, pogo stick equipped")
     keep or ch.close()
 

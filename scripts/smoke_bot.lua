@@ -23,3 +23,11 @@ commands.smokechat = function(p, a)
     if not ok then log("smokechat failed: " .. tostring(err)) end
     return ok, tostring(err or "sent")
 end
+
+-- the harness re-equips its weapon whenever the hands are empty; turn that off so items can be put away by hand
+RL.autoRearm = false
+-- smokeunequip: empty both hands (for a no-item speed baseline)
+commands.smokeunequip = function(p, a)
+    p:setPrimaryHandItem(nil); p:setSecondaryHandItem(nil)
+    return true, "hands empty"
+end
