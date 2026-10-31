@@ -9,7 +9,7 @@ from mathutils import Vector
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 XFILE = ROOT / "Contents/mods/ImpracticalTransport/42/media/models_X/ImpracticalTransport/PogoStick.X"
 PREVIEW = ROOT / "previews"
-GAME_UNITS_PER_METRE = 0.5   # the survivor is ~0.9 game units tall for a 1.8 m person (vanilla bat: 0.49 units for a 0.9 m bat)
+GAME_UNITS_PER_METRE = 0.75  # the survivor is ~0.9 units tall and its arms are short, so the stick is larger than life: hands at the grips, feet on the pads
 
 
 def mat(name, rgb):

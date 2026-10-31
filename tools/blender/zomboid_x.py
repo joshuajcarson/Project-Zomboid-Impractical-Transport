@@ -108,7 +108,7 @@ def collect_frames(root):
 
 
 def import_body(path, collection=None):
-    """Import a skinned .X body: returns (armature object, mesh object(s), {bone: rest_local})."""
+    """Import a skinned .X body: returns (armature object, mesh object(s), {bone: rest_local}, {bone: rest_world}); rest = the bind pose."""
     import bpy
     from mathutils import Matrix, Vector
     root = parse_x(path)
@@ -116,11 +116,19 @@ def import_body(path, collection=None):
     mesh_frames = {n for n, _ in meshes}
     by_name = {n: (p, m) for n, p, m in frames}
     world = {}
+    # The file's frames hold the first pose of the animations (arms down), while the mesh is skinned in a T-pose: each SkinWeights
+    # block stores the inverse of the bone's bind matrix. Use the bind pose as the armature rest (so the mesh deforms correctly);
+    # bones without weights (root, props, toes...) hang off their parent with the frame's local matrix.
+    bind = {}
+    for _, mb in meshes:
+        for sw in mb.find("SkinWeights"):
+            n = int(sw.nums[0])
+            if n > 0: bind[sw.strs[0]] = _mat(sw.nums[1 + 2 * n:1 + 2 * n + 16]).inverted()
 
     def w(n):
         if n not in world:
             p, m = by_name[n]
-            world[n] = m if p is None else w(p) @ m
+            world[n] = bind[n] if n in bind else (m if p is None else w(p) @ m)
         return world[n]
 
     arm_data = bpy.data.armatures.new("Survivor")

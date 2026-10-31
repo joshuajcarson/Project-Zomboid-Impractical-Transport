@@ -1,6 +1,6 @@
 module Base
 {
-    /* the .X mesh is already in game units (Y up, stick ~0.55 units tall); change `scale` only to resize */
+    /* the .X mesh is already in game units (Y up, stick ~0.83 units tall); change `scale` only to resize */
     model PogoStick_3d
     {
         mesh = ImpracticalTransport/PogoStick,
@@ -11,8 +11,8 @@ module Base
         {
             /* hand bone axes in the idle pose: X right, Y forward, Z up. Rotating 90 about X turns the stick's up into the hand's up so the foot hangs down. */
             rotate = 90.0000 0.0000 0.0000,
-            /* the grips are 0.46 up the stick, which after that turn is 0.46 along the hand's Z: cancel it so the hand holds the grips */
-            offset = 0.0000 0.0000 -0.4600,
+            /* the right grip is 0.105 to the side and 0.69 up the stick (0.75 game units per metre); after that turn the height is along the hand's Z: cancel both so the right hand holds the right grip */
+            offset = -0.1050 0.0000 -0.6900,
         }
     }
 }

@@ -2,12 +2,14 @@
 -- The anim nodes in AnimSets/player/*_pogo.xml play only while PogoActive is true and take their speed from the variables set here.
 ImpracticalTransport = ImpracticalTransport or {}
 
--- walk/run: animation speed scale (below 1 is slower than normal walking); drain: endurance lost per second while moving
+-- walk/run: playback speed of the Bob_PogoHop clip (1 = one hop per 0.8 s, 0.64 tiles each, so 0.8 tiles/s; bare walking is ~1.4)
+-- drain: endurance lost per second while moving
 local PROFILES = {
-    ["ImpracticalTransport.PogoStick"] = { walk = 0.45, run = 0.6, drain = 0.0035 },
+    ["ImpracticalTransport.PogoStick"] = { walk = 1.0, run = 1.0, drain = 0.0035 },
 }
 
 local riding = {}
+local held = {}
 
 -- While a timed action such as unequip, drop or place runs, step off the pogo anim nodes so the action's own animation can finish.
 -- Walking actions (click-to-move) don't count: they are plain movement.
@@ -26,7 +28,14 @@ end
 Events.OnPlayerUpdate.Add(function(player)
     local profile = ImpracticalTransport.getProfile(player)
     local num = player:getPlayerNum()
-    local active = profile ~= nil and not busy(player)
+    -- a pogo stick is not a weapon: no aiming, no swinging while it is in hand (the weapon poses would hold it at odd angles)
+    local isHeld = profile ~= nil
+    if isHeld ~= (held[num] or false) then
+        held[num] = isHeld
+        player:setIgnoreAimingInput(isHeld)
+        player:setAuthorizeMeleeAction(not isHeld)
+    end
+    local active = isHeld and not busy(player)
     if active ~= (riding[num] or false) then
         riding[num] = active
         player:setVariable("PogoActive", active)
