@@ -23,9 +23,9 @@ def static():
     media = ver / "media"
     for s in (media / "scripts" / "vehicles").glob("*.txt"):
         text = s.read_text(encoding="utf-8")
-        for mesh in re.findall(r"mesh\s*=\s*(\S+?),", text):
+        for mesh in re.findall(rf"mesh\s*=\s*(\S*{MOD_ID}\S*?),", text):   # vanilla assets live in the game, only check ours
             (media / "models_X" / f"{mesh}.fbx").exists() or fail(f"{s.name}: missing models_X/{mesh}.fbx")
-        for tex in re.findall(r"texture\s*=\s*(\S+?)\s*,", text):
+        for tex in re.findall(rf"texture\s*=\s*(\S*{MOD_ID}\S*?)\s*,", text):
             (media / "textures" / f"{tex}.png").exists() or fail(f"{s.name}: missing textures/{tex}.png")
     print("static ok")
 

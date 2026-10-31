@@ -1,17 +1,9 @@
 module Base
 {
-	model Vehicle_Tricycle
-	{
-		mesh = vehicles/ImpracticalTransport/Vehicle_Tricycle,
-		shader = vehicle_multiuv,
-		invertX = FALSE,
-		scale = 0.01,
-	}
-
 	vehicle Tricycle
 	{
 		template! = Tricycle,
-		skin { texture = vehicles/ImpracticalTransport/Vehicle_Tricycle, }
+		skin { texture = Vehicles/vehicle_utilitytrailershell, }
 	}
 
 	/* Format copied from TEHE-Studios/ExpandedHelicopterEvents (42.15). All numbers are untested guesses. */
@@ -24,8 +16,8 @@ module Base
 
 		model
 		{
-			file = Vehicle_Tricycle,
-			scale = 1.0,
+			file = Vehicles_Trailer,   /* placeholder: vanilla utility trailer mesh until a tricycle model exists */
+			scale = 0.6,
 			offset = 0.0 0.0 0.0,
 		}
 
