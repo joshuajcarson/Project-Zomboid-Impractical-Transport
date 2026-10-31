@@ -16,7 +16,7 @@ PREVIEW = ROOT / "previews"; PREVIEW.mkdir(exist_ok=True)
 
 FPS, FRAMES = 30, 24            # one hop = 0.8 s
 TPS = 4800                      # ticks per second the game's clips use
-DISTANCE = 0.64                 # tiles travelled per hop: 0.64 / 0.8 s = 0.8 tiles/s at speed scale 1 (bare walking is ~1.43)
+DISTANCE = 0.44                 # Translation_Data travel per hop. Measured in game: 0.64 gave 1.17 tiles/s (79% of walking), so 0.44 aims for ~0.8 tiles/s
 s = pogo_stick.GAME_UNITS_PER_METRE   # stick scale, so grips and pads land where the model puts them
 
 bpy.ops.wm.read_factory_settings(use_empty=True)

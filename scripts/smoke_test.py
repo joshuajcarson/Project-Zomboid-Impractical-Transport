@@ -109,7 +109,9 @@ def stage_play(keep):
         return next(p for p in ch.wait_obs(timeout=10)["p"] if p["u"] == USER)
     def speed(dx):
         p0 = pos(); bot("goto", f"{p0['x'] + dx:.1f}", f"{p0['y']:.1f}"); t0 = time.time(); time.sleep(8)
-        p1 = pos(); return math.hypot(p1["x"] - p0["x"], p1["y"] - p0["y"]) / (time.time() - t0)
+        p1 = pos(); v = math.hypot(p1["x"] - p0["x"], p1["y"] - p0["y"]) / (time.time() - t0)
+        bot("stop"); time.sleep(1)      # a walk still in progress sits ahead of any later equip/unequip action in the timed-action queue
+        return v
     bot("smokeunequipaction"); time.sleep(4)
     walk = speed(12)
     bot("smokeequipaction", "PogoStick"); time.sleep(5)
