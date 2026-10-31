@@ -27,6 +27,8 @@ pb = arm.pose.bones
 zx.import_animation(GAME / "anims_X/Bob/Bob_Idle.X", arm, rl0, "Bob_Idle", fps=FPS)
 bpy.context.scene.frame_set(0); bpy.context.view_layer.update()
 idle_hand = {n: pb[n].matrix.to_3x3().copy() for n in ("Bip01_L_Hand", "Bip01_R_Hand")}
+# Bip01_Prop1 is the bone the model attaches to and Bob_Idle poses it off the hand; keep that offset or the stick tilts away from the grip
+prop_rel = {(h, pr): pb[h].matrix.inverted() @ pb[pr].matrix for h, pr in (("Bip01_R_Hand", "Bip01_Prop1"), ("Bip01_L_Hand", "Bip01_Prop2"))}
 arm.animation_data_clear()
 for p in pb: p.rotation_mode = "QUATERNION"
 rest = {b.name: b.matrix_local.copy() for b in arm.data.bones}
@@ -86,6 +88,9 @@ def pose(stick_lift, sink):
         hand_t = side * sgn * 0.14 * s + up * (grip_z + stick_lift) + fwd * 0.0
         limb(f"Bip01_{pre}Thigh", f"Bip01_{pre}Calf", f"Bip01_{pre}Foot", foot_t, fwd + side * sgn * 0.15, True)
         limb(f"Bip01_{pre}UpperArm", f"Bip01_{pre}Forearm", f"Bip01_{pre}Hand", hand_t, -fwd * 0.5 + side * sgn * 0.3 - up * 0.8, False)
+    for (h, pr), rel in prop_rel.items():
+        pb[pr].matrix = pb[h].matrix @ rel
+    bpy.context.view_layer.update()
     local = {}
     for n in order:
         parent = pb[n].parent
