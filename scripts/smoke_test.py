@@ -11,7 +11,10 @@ MOD_ID = "ImpracticalTransport"
 RL = pathlib.Path(os.environ.get("PZ_RL_REPO", r"C:\bench\project-zomboid-rl-based-players"))
 ARENA = (4010, 11767)   # the RL harness's open field (no buildings, fences, hutches or forest within 30 squares; the old arena at 10770,9410 sits beside a house, shed and playground); the character otherwise resumes wherever it was left
 USER = "Smoke1"   # fresh account: a dead character from an earlier run would otherwise be reused
-ITEMS = ["ImpracticalTransport.PogoStick"] + [f"ImpracticalTransport.PogoCal{i}" for i in range(1, 8)]   # the numbered ones are the throw-away rotate calibration set (tools/make_calibration.py)
+ITEMS = ["ImpracticalTransport.PogoStick"]
+# throw-away rotate calibration set, only present while tools/make_calibration.py has generated it
+CAL = MOD / "42/media/scripts/ImpracticalTransport_calibration_items.txt"
+ITEMS += [f"ImpracticalTransport.{n}" for n in re.findall(r"item (PogoCal\d+)", CAL.read_text(encoding="utf-8") if CAL.exists() else "")]
 VEHICLES = []   # the tricycle vehicle script is parked while the transports move to held items
 ERR = re.compile(r"ERROR|Exception|WARN.*(script|model|texture)", re.I)
 
@@ -118,6 +121,8 @@ def stage_play(keep):
     logs = sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)
     "ImpracticalTransport riding=true" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("riding flag never set (see client log)")
     pogo = speed(-12)
+    bot("smokestumble"); time.sleep(8)      # the fall animation has to finish before the unequip below is queued
+    "ImpracticalTransport stumble" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("forced stumble never ran (see client log)")
     print(f"speed: walking {walk:.2f} tiles/s, pogo {pogo:.2f} tiles/s ({pogo / walk:.0%} of walking)")
     pogo > 0.1 or fail("rider did not move")
     # put it away like a player: a real unequip action must finish while the pogo anim nodes are active

@@ -50,3 +50,9 @@ commands.smokeclear = function(p, a)
     p:getInventory():RemoveAll((a and a.a) or "PogoStick")
     return true, "cleared"
 end
+
+-- smokestumble: force the stumble the rider would otherwise get by chance (the mod's own function, so its variables are the ones tested)
+commands.smokestumble = function(p, a)
+    local ok, err = pcall(ImpracticalTransport.stumble, p)
+    return ok, tostring(err or "stumbled")
+end
