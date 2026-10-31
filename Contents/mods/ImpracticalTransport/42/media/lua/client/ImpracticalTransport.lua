@@ -152,13 +152,15 @@ Events.OnPlayerUpdate.Add(function(player)
     local terrain = vanilla * ground.speed
     local report = string.format("vanilla=%.2f ground=%.2f", vanilla, ground.speed)
     if report ~= lastReport[num] then lastReport[num] = report; print("ImpracticalTransport terrain " .. report) end
-    player:setVariable("PogoWalkSpeed", profile.walk * tired * terrain)
-    player:setVariable("PogoRunSpeed", profile.run * tired * terrain)
-    player:setVariable("PogoSprintSpeed", profile.sprint * tired * terrain)
+    -- the engine can keep the walk node playing while the rider runs, so all three nodes read the speed of the current gait
+    local gait = player:isSprinting() and "Sprint" or player:isRunning() and "Run" or ""
+    local hop = (profile[gait:lower()] or profile.walk) * tired * terrain
+    player:setVariable("PogoWalkSpeed", hop)
+    player:setVariable("PogoRunSpeed", hop)
+    player:setVariable("PogoSprintSpeed", hop)
     player:setVariable("PogoSpeed", 1)
 
     if player:isPlayerMoving() then
-        local gait = player:isSprinting() and "Sprint" or player:isRunning() and "Run" or ""
         local fitness = player:getPerkLevel(Perks.Fitness)
         local perSecond = profile.drain * (profile["drain" .. gait] or 1) * (1.5 - fitness * 0.05) / math.max(0.2, terrain)   -- fitter riders tire slower, never zero; slow ground tires more
         stats:set(CharacterStat.ENDURANCE, math.max(0, endurance - perSecond * GameTime.getInstance():getTimeDelta()))

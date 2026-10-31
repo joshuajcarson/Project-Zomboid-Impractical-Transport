@@ -96,3 +96,28 @@ commands.smokeview = function(p, a)
 end
 -- smokeui: bring the UI back
 commands.smokeui = function(p, a) ISUIHandler.setVisibleAllUI(true); return true, "ui on" end
+
+-- smokegait|walk|run|sprint: hold that gait every update (stands in for the run/sprint keys, which the bot cannot press)
+local gaitHandler
+commands.smokegait = function(p, a)
+    local gait = (a and a.a) or "walk"
+    if gaitHandler then Events.OnPlayerUpdate.Remove(gaitHandler); gaitHandler = nil end
+    if gait ~= "walk" then
+        gaitHandler = function(player)
+            if player ~= p then return end
+            player:setRunning(gait == "run"); player:setSprinting(gait == "sprint")
+        end
+        Events.OnPlayerUpdate.Add(gaitHandler)
+    else
+        p:setRunning(false); p:setSprinting(false)
+    end
+    return true, "gait " .. gait
+end
+
+-- smokestate: log the gait flags and the pogo speed variables the anim nodes read
+commands.smokestate = function(p, a)
+    print(string.format("STATE running=%s sprinting=%s moving=%s walkVar=%s runVar=%s sprintVar=%s node=%s",
+        tostring(p:isRunning()), tostring(p:isSprinting()), tostring(p:isPlayerMoving()), tostring(p:getVariableFloat("PogoWalkSpeed", -1)),
+        tostring(p:getVariableFloat("PogoRunSpeed", -1)), tostring(p:getVariableFloat("PogoSprintSpeed", -1)), tostring(p:getAnimationDebug()):gsub("%s+", " "):sub(1, 160)))
+    return true, "logged"
+end
