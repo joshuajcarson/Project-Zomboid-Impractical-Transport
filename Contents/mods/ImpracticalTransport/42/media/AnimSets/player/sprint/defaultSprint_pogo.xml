@@ -5,7 +5,7 @@
 	<m_Priority>10</m_Priority>
 	<m_ConditionPriority>10</m_ConditionPriority>
 	<m_deferredBoneAxis>Y</m_deferredBoneAxis>
-	<m_SpeedScale>PogoRunSpeed</m_SpeedScale>
+	<m_SpeedScale>PogoSprintSpeed</m_SpeedScale>
 	<m_Scalar>PogoSpeed</m_Scalar>
 	<m_BlendTime>0.40</m_BlendTime>
 	<m_SyncTrackingEnabled>false</m_SyncTrackingEnabled>

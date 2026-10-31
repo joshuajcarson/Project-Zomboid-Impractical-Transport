@@ -123,6 +123,10 @@ def stage_play(keep):
     pogo = speed(-12)
     bot("smokestumble"); time.sleep(8)      # the fall animation has to finish before the unequip below is queued
     "ImpracticalTransport stumble" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("forced stumble never ran (see client log)")
+    log = logs[-1].read_text(encoding="utf-8", errors="replace")
+    errors = [l for l in log.splitlines() if "(MOD:Impractical Transport)" in l and "ERROR" in l] + re.findall(r"ImpracticalTransport \w+ disabled: .*", log)
+    errors and fail(f"{len(errors)} mod Lua errors in the client log, first: {errors[0][:200]}")
+    print("terrain readings:", sorted(set(re.findall(r"ImpracticalTransport terrain (.*)", log))))
     print(f"speed: walking {walk:.2f} tiles/s, pogo {pogo:.2f} tiles/s ({pogo / walk:.0%} of walking)")
     pogo > 0.1 or fail("rider did not move")
     # put it away like a player: a real unequip action must finish while the pogo anim nodes are active
