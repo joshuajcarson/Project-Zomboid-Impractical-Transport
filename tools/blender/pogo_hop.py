@@ -97,7 +97,10 @@ def pose(stick_lift, sink):
     bpy.context.view_layer.update()
     for pre, sgn in (("L_", 1), ("R_", -1)):
         foot_t = tilt(side * sgn * 0.17 * s + up * (pad_z + ankle + stick_lift))
-        hand_t = tilt(side * sgn * 0.14 * s + up * (grip_z + stick_lift))
+        # the model hangs off Bip01_Prop1/2, which sit a little off the hand bone: put THAT bone on the grip, so the hand goes where it must for the prop to land there
+        hand = f"Bip01_{pre}Hand"
+        prop_off = arm.matrix_world.to_3x3() @ (Rm @ idle_hand[hand]) @ next(r for (h, _), r in prop_rel.items() if h == hand).translation
+        hand_t = tilt(side * sgn * 0.14 * s + up * (grip_z + stick_lift)) - prop_off
         limb(f"Bip01_{pre}Thigh", f"Bip01_{pre}Calf", f"Bip01_{pre}Foot", foot_t, R @ (fwd + side * sgn * 0.15), True)
         limb(f"Bip01_{pre}UpperArm", f"Bip01_{pre}Forearm", f"Bip01_{pre}Hand", hand_t, R @ (-fwd * 0.5 + side * sgn * 0.3 - up * 0.8), False)
     for (h, pr), rel in prop_rel.items():
