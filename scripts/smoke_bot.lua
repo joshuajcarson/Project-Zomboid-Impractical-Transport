@@ -56,3 +56,43 @@ commands.smokestumble = function(p, a)
     local ok, err = pcall(ImpracticalTransport.stumble, p)
     return ok, tostring(err or "stumbled")
 end
+
+-- smokebones|ticks: log the model-space transform of the bones that matter for the pogo pose, once per update for `ticks` updates.
+-- Lines read "BONES <tick> <bone> <matrix text>" (translation = the 4th column); the model space is the character's own frame.
+-- shortcut: depends on AnimationPlayer:getSkinningBoneIndex / getModelTransformAt being callable from Lua; each failure is logged once.
+local BONES = { "Bip01_Pelvis", "Bip01_Head", "Bip01_R_Hand", "Bip01_L_Hand", "Bip01_Prop1", "Bip01_Prop2", "Bip01_R_Foot", "Bip01_L_Foot" }
+commands.smokebones = function(p, a)
+    local left, tick = tonumber(a and a.a) or 60, 0
+    local failed = {}
+    local function sample(player)
+        if player ~= p then return end
+        tick = tick + 1
+        local ok, err = pcall(function()
+            local ap = player:getAnimationPlayer()
+            for _, name in ipairs(BONES) do
+                local idx = ap:getSkinningBoneIndex(name, -1)
+                if idx >= 0 then
+                    print("BONES " .. tick .. " " .. name .. " " .. tostring(ap:getModelTransformAt(idx)):gsub("%s+", " "))
+                elseif not failed[name] then failed[name] = true; print("BONES missing bone " .. name) end
+            end
+        end)
+        if not ok and not failed.all then failed.all = true; print("BONES failed: " .. tostring(err)) end
+        if tick >= left or failed.all then Events.OnPlayerUpdate.Remove(sample) end
+    end
+    Events.OnPlayerUpdate.Add(sample)
+    return true, "sampling " .. left
+end
+
+-- smokeview|zoomsteps: hide every UI panel and zoom the camera in (negative steps zoom out), so a screen capture shows the rider and nothing else
+commands.smokeview = function(p, a)
+    local steps = tonumber(a and a.a) or 6
+    local ok, err = pcall(function()
+        ISUIHandler.setVisibleAllUI(false)
+        local before = getCore():getZoom(0)
+        for _ = 1, math.abs(steps) do getCore():doZoomScroll(0, steps > 0 and -1 or 1) end
+        print("smokeview zoom " .. tostring(before) .. " -> " .. tostring(getCore():getZoom(0)))
+    end)
+    return ok, tostring(err or "view set")
+end
+-- smokeui: bring the UI back
+commands.smokeui = function(p, a) ISUIHandler.setVisibleAllUI(true); return true, "ui on" end
