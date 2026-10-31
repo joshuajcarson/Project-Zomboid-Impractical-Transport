@@ -11,7 +11,8 @@ module Base
         {
             /* the hand holds the grips (0.46 up the stick), not the foot */
             offset = 0.0000 -0.4600 0.0000,
-            rotate = 0.0000 0.0000 0.0000,
+            /* hand bone: Y forward, Z up, X right in the idle pose. Rotating 90 about X turns the stick's up (Y) into the hand's up (Z), so the foot hangs down */
+            rotate = 90.0000 0.0000 0.0000,
         }
     }
 }

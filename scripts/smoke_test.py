@@ -123,6 +123,6 @@ def stage_play(keep):
 if __name__ == "__main__":
     stage = sys.argv[1] if len(sys.argv) > 1 else "static"
     "--no-static" in sys.argv or static()   # --no-static: load the game anyway to see what it says about missing assets
-    if stage in ("server", "play"): stage_server()
+    if stage in ("server", "play"): stage_server()    # the server checksums scripts too, so any mod edit needs a full boot
     if stage == "play": stage_play("--keep" in sys.argv)
     print("PASS", stage)
