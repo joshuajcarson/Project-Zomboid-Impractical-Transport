@@ -28,5 +28,7 @@ Run any of them with `"C:\Program Files\Blender Foundation\Blender 4.1\blender.e
 Lessons baked into the test: the server checksums scripts, so any mod edit needs a full server boot; items must be added server-side (`/additem`), and hands must only change through real equip/unequip actions, or the server and client disagree and nothing can be equipped.
 
 ## Status (2026-10-31)
-Working in game: item, model, equip/unequip, slowed walking, endurance drain. Just built, not yet seen in game: the hop clip, the new grip offset and the aim/attack block.
+Smoke test passes: the item loads and equips, the hop clip loads (bare walking ~1.4 tiles/s, pogo ~0.8), a real unequip action works, endurance drains. Not yet seen by a human: how the hop animation looks, whether the right hand sits on the right grip (the sideways offset sign is a guess; flip `offset.x` if it is on the wrong side), and that aiming/swinging is blocked.
+
+Gotchas learned the hard way: the game loads clips with Assimp, so a clip needs the skeleton Frame tree, a mesh with a material, and SkinWeights naming the bones (without skin weights the server aborts at boot). The armature rest must be the skin bind pose, not the frames' first pose.
 Known issues / next: tricycle and the other transports (the old vehicle script `ImpracticalTransport_Tricycle.txt` is parked, unused); stumbles and falls, zombie contact; the stick is a flat teal placeholder texture and a vanilla icon; the idle node still plays the plain `Bob_Idle`; left-hand attachment (`Bip01_Prop2`) is not set.
