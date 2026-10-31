@@ -24,7 +24,7 @@ def static():
     for s in (media / "scripts").rglob("*.txt"):
         text = s.read_text(encoding="utf-8")
         for mesh in re.findall(rf"mesh\s*=\s*(\S*{MOD_ID}\S*?),", text):   # vanilla assets live in the game, only check ours
-            (media / "models_X" / f"{mesh}.fbx").exists() or fail(f"{s.name}: missing models_X/{mesh}.fbx")
+            any((media / "models_X" / f"{mesh}{ext}").exists() for ext in (".X", ".x", ".fbx")) or fail(f"{s.name}: missing models_X/{mesh}")
         for tex in re.findall(rf"texture\s*=\s*(\S*{MOD_ID}\S*?)\s*,", text):
             (media / "textures" / f"{tex}.png").exists() or fail(f"{s.name}: missing textures/{tex}.png")
     print("static ok")
@@ -84,10 +84,13 @@ def stage_play(keep):
     bot("god", "1")      # keep the tester alive; a dead character costs minutes to replace
     ch.command(f"heal|{USER}"); ch.command(f"zclear|{me['x']:.0f}|{me['y']:.0f}|80")
     bot("smokeoutfit")
+    ch.command(f"admin|{USER}")      # admin role so the chat commands below are accepted
     for it in ITEMS:
-        bot("giveitem", it)   # client-side: a server-side AddItem never reaches a real client
+        # /additem (pzwiki Admin_commands) adds the item on the SERVER and syncs it to the client. The bot's client-side giveitem
+        # would leave the server without the item, so every real unequip/drop/place action would fail server-side.
+        bot("smokechat", f'/additem "{USER}" {it}')
+    time.sleep(3)
     x, y = int(me["x"]) + 3, int(me["y"])
-    ch.command(f"admin|{USER}")      # admin role so the chat command below is accepted
     for v in VEHICLES:
         # /addvehicle is the documented admin command (pzwiki Admin_commands).
         bot("smokechat", f'/addvehicle "{v}" "{USER}"')
@@ -100,13 +103,17 @@ def stage_play(keep):
         p1 = pos(); return math.hypot(p1["x"] - p0["x"], p1["y"] - p0["y"]) / (time.time() - t0)
     bot("smokeunequip"); time.sleep(2)
     walk = speed(12)
-    bot("equip", "PogoStick"); time.sleep(4)
+    bot("smokeequipaction", "PogoStick"); time.sleep(5)
     logs = sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)
     "ImpracticalTransport riding=true" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("riding flag never set (see client log)")
     pogo = speed(-12)
     print(f"speed: walking {walk:.2f} tiles/s, pogo {pogo:.2f} tiles/s ({pogo / walk:.0%} of walking)")
     pogo > 0.1 or fail("rider did not move")
+    # put it away like a player: a real unequip action must finish while the pogo anim nodes are active
+    bot("smokeunequipaction"); time.sleep(6); bot("smokehands"); time.sleep(1)
+    "RLBOT smokehands -> true true hands empty" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("unequip action never finished: hands still full")
     pogo < walk or fail("pogo is not slower than walking")
+    bot("smokeequipaction", "PogoStick")   # leave it in hand for whoever plays next
     print("play ready: god mode on, dressed, pogo stick equipped")
     keep or ch.close()
 

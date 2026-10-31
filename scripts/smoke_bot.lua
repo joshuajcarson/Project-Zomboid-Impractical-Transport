@@ -31,3 +31,22 @@ commands.smokeunequip = function(p, a)
     p:setPrimaryHandItem(nil); p:setSecondaryHandItem(nil)
     return true, "hands empty"
 end
+
+-- smokeunequipaction: put the held item away the way a player does (a real timed action); smokehands then reports the result in the log
+commands.smokeunequipaction = function(p, a)
+    local item = p:getPrimaryHandItem()
+    if not item then return false, "nothing held" end
+    ISTimedActionQueue.add(ISUnequipAction:new(p, item, 50))
+    return true, "queued"
+end
+commands.smokehands = function(p, a)
+    return p:getPrimaryHandItem() == nil, "hands " .. (p:getPrimaryHandItem() and "full" or "empty")
+end
+
+-- smokeequipaction|Type: equip like a player (a real timed action, which the server validates against ITS copy of the item)
+commands.smokeequipaction = function(p, a)
+    local item = p:getInventory():getFirstTypeRecurse((a and a.a) or "PogoStick")
+    if not item then return false, "not in inventory" end
+    ISTimedActionQueue.add(ISEquipWeaponAction:new(p, item, 50, true, item:isTwoHandWeapon()))
+    return true, "queued"
+end

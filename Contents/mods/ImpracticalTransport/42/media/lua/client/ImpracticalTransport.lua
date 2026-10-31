@@ -9,6 +9,15 @@ local PROFILES = {
 
 local riding = {}
 
+-- While a timed action such as unequip, drop or place runs, step off the pogo anim nodes so the action's own animation can finish.
+-- Walking actions (click-to-move) don't count: they are plain movement.
+local WALKING = { ISWalkToTimedAction = true, ISPathFindAction = true }
+local function busy(player)
+    local ok, queue = pcall(function() return ISTimedActionQueue.getTimedActionQueue(player).queue end)
+    local current = ok and queue[1]
+    return current ~= nil and not WALKING[current.Type]
+end
+
 function ImpracticalTransport.getProfile(player)
     local item = player:getPrimaryHandItem()
     return item and PROFILES[item:getFullType()] or nil
@@ -17,7 +26,7 @@ end
 Events.OnPlayerUpdate.Add(function(player)
     local profile = ImpracticalTransport.getProfile(player)
     local num = player:getPlayerNum()
-    local active = profile ~= nil
+    local active = profile ~= nil and not busy(player)
     if active ~= (riding[num] or false) then
         riding[num] = active
         player:setVariable("PogoActive", active)

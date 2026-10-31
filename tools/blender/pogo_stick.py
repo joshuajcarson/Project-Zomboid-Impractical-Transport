@@ -1,14 +1,15 @@
-"""Build the pogo stick from primitives, export FBX, render preview PNGs.
+"""Build the pogo stick from primitives, export a game-ready .X model, render preview PNGs.
   blender -b -P tools/blender/pogo_stick.py
-Meters, Z up, foot of the stick at z=0. Flat-colour materials only, so no texture files are needed yet.
+Meters, Z up, foot of the stick at z=0. Flat-colour materials only (the game gets a one-colour texture for now).
 Layout (twin-rail pogo): rubber foot + steel tip, foot pads at the bottom of two side rails, a coil spring around a
 centre rod, rails that flare in and then out to two grips."""
 import bpy, math, pathlib
 from mathutils import Vector
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-FBX = ROOT / "Contents/mods/ImpracticalTransport/42/media/models_X/ImpracticalTransport/PogoStick.fbx"
+XFILE = ROOT / "Contents/mods/ImpracticalTransport/42/media/models_X/ImpracticalTransport/PogoStick.X"
 PREVIEW = ROOT / "previews"
+GAME_UNITS_PER_METRE = 0.5   # the survivor is ~0.9 game units tall for a 1.8 m person (vanilla bat: 0.49 units for a 0.9 m bat)
 
 
 def mat(name, rgb):
@@ -58,11 +59,54 @@ def build():
     return bpy.context.active_object
 
 
+X_TEMPLATES = """xof 0303txt 0032
+template ColorRGBA { <35ff44e0-6c7c-11cf-8f52-0040333594a3> FLOAT red; FLOAT green; FLOAT blue; FLOAT alpha; }
+template ColorRGB { <d3e16e81-7835-11cf-8f52-0040333594a3> FLOAT red; FLOAT green; FLOAT blue; }
+template Material { <3d82ab4d-62da-11cf-ab39-0020af71e433> ColorRGBA faceColor; FLOAT power; ColorRGB specularColor; ColorRGB emissiveColor; [...] }
+template TextureFilename { <a42790e1-7810-11cf-8f52-0040333594a3> STRING filename; }
+template Vector { <3d82ab5e-62da-11cf-ab39-0020af71e433> FLOAT x; FLOAT y; FLOAT z; }
+template MeshFace { <3d82ab5f-62da-11cf-ab39-0020af71e433> DWORD nFaceVertexIndices; array DWORD faceVertexIndices[nFaceVertexIndices]; }
+template Mesh { <3d82ab44-62da-11cf-ab39-0020af71e433> DWORD nVertices; array Vector vertices[nVertices]; DWORD nFaces; array MeshFace faces[nFaces]; [...] }
+template MeshNormals { <f6f23f43-7686-11cf-8f52-0040333594a3> DWORD nNormals; array Vector normals[nNormals]; DWORD nFaceNormals; array MeshFace faceNormals[nFaceNormals]; }
+template MeshMaterialList { <f6f23f42-7686-11cf-8f52-0040333594a3> DWORD nMaterials; DWORD nFaceIndexes; array DWORD faceIndexes[nFaceIndexes]; [Material <3d82ab4d-62da-11cf-ab39-0020af71e433>] }
+template Coords2d { <f6f23f44-7686-11cf-8f52-0040333594a3> FLOAT u; FLOAT v; }
+template MeshTextureCoords { <f6f23f40-7686-11cf-8f52-0040333594a3> DWORD nTextureCoords; array Coords2d textureCoords[nTextureCoords]; }
+"""
+
+
+def export_x(obj, path, scale=GAME_UNITS_PER_METRE):
+    """Static mesh as a text DirectX .X file in the game's units, Y up (the format vanilla item models use).
+    Blender (x, y, z up) -> game (x, z, y): swapping two axes flips handedness, which is what DirectX expects."""
+    import bmesh
+    bm = bmesh.new(); bm.from_mesh(obj.data); bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    uv = bm.loops.layers.uv.active
+    verts, uvs, norms = [], [], []
+    for f in bm.faces:
+        n = f.normal
+        for l in f.loops:
+            c = l.vert.co
+            verts.append((c.x * scale, c.z * scale, c.y * scale))
+            norms.append((n.x, n.z, n.y))
+            uvs.append((l[uv].uv.x, 1 - l[uv].uv.y) if uv else (0.5, 0.5))
+    nt = len(verts) // 3
+    end = lambda i, n: "," if i < n - 1 else ";"
+    tri = "".join(f"3;{3 * i},{3 * i + 1},{3 * i + 2};{end(i, nt)}\n" for i in range(nt))
+    vec = lambda rows: "".join(f"{x:.6f};{y:.6f};{z:.6f};{end(i, len(rows))}\n" for i, (x, y, z) in enumerate(rows))
+    out = [X_TEMPLATES, "Mesh PogoStick {\n", f"{len(verts)};\n", vec(verts), f"{nt};\n", tri,
+           "MeshNormals {\n", f"{len(norms)};\n", vec(norms), f"{nt};\n", tri, "}\n",
+           "MeshTextureCoords {\n", f"{len(uvs)};\n",
+           "".join(f"{u:.6f};{v:.6f};{end(i, len(uvs))}\n" for i, (u, v) in enumerate(uvs)), "}\n",
+           "MeshMaterialList {\n1;\n", f"{nt};\n", ",".join("0" for _ in range(nt)), ";;\n",
+           "Material Pogo {\n1.0;1.0;1.0;1.0;;\n0.0;\n0.0;0.0;0.0;;\n0.0;0.0;0.0;;\n",
+           'TextureFilename { "PogoStick_texture.png"; }\n}\n}\n}\n']
+    pathlib.Path(path).parent.mkdir(parents=True, exist_ok=True)
+    pathlib.Path(path).write_text("".join(out), encoding="latin-1", newline="\n")
+    bm.free()
+
+
 def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    build()
-    FBX.parent.mkdir(parents=True, exist_ok=True)
-    bpy.ops.export_scene.fbx(filepath=str(FBX), use_selection=True, apply_unit_scale=True, axis_forward="-Z", axis_up="Y")
+    export_x(build(), XFILE)
 
     # previews: three angles, solid shading via the workbench engine (fast, no lighting setup)
     sc = bpy.context.scene
@@ -75,7 +119,7 @@ def main():
                            ("three_quarter", (math.radians(75), 0, math.radians(40)), (2, -2.4, 1.0))):
         cam.rotation_euler, cam.location = rot, loc
         sc.render.filepath = str(PREVIEW / f"pogo_{name}.png"); bpy.ops.render.render(write_still=True)
-    print("exported", FBX)
+    print("exported", XFILE)
 
 
 if __name__ == "__main__":
