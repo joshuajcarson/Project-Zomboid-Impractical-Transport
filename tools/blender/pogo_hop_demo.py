@@ -1,6 +1,6 @@
 """Render every frame of the hop clip (survivor + pogo stick, side and front) into previews/demo/ for a GIF.
   blender -b -P tools/blender/pogo_hop_demo.py      then: python tools/blender/make_gif.py"""
-import bpy, sys, math, pathlib
+import bpy, sys, math, os, pathlib
 from mathutils import Vector
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 import zomboid_x as zx
@@ -40,5 +40,6 @@ for view, d in (("side", sideaxis), ("front", fwd)):
     for fr in range(0, 24):
         sc.frame_set(fr)
         stick.location = (0, 0, stick_z(fr))
+        stick.rotation_mode = 'AXIS_ANGLE'; stick.rotation_axis_angle = (math.radians(float(os.environ.get('LEAN_DEG', 12))), *up.cross(fwd))
         sc.render.filepath = str(OUT / f"{view}_{fr:02d}.png"); bpy.ops.render.render(write_still=True)
 print("rendered")

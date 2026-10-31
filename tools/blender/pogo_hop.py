@@ -3,7 +3,7 @@
 The clip keys every bone of the player skeleton: pelvis lift for the bounce, knees and elbows from a two-bone solver so the
 feet stay on the pads and the hands on the grips. Translation_Data carries the forward travel per hop, which is what moves the
 character in game (speed = DISTANCE / DURATION x the anim node's speed scale). Preview only reads the game's own body model."""
-import bpy, sys, math, pathlib
+import bpy, sys, math, os, pathlib
 from mathutils import Vector, Matrix
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 import zomboid_x as zx
@@ -71,23 +71,31 @@ def limb(root, mid, end, target_world, pole_world, foot):
     aim(root, mid, (E - Hp).normalized(), Hp)
     q2 = aim(mid, end, (T - E).normalized(), E)
     rm = rest[end].to_3x3()
-    pb[end].matrix = Matrix.Translation(T) @ (rm if foot else idle_hand[end]).to_4x4()
+    pb[end].matrix = Matrix.Translation(T) @ (Rm @ (rm if foot else idle_hand[end])).to_4x4()
     bpy.context.view_layer.update()
 
 # (frame, stick lift, body sink relative to the stick): crouch, push off, airborne, descend, land
 KEYS = [(0, 0.0, 0.01), (4, 0.0, 0.045), (8, 0.012, -0.012), (12, 0.075, 0.0), (18, 0.02, 0.01), (21, 0.0, 0.03), (24, 0.0, 0.01)]
 
+# Aiming is blocked while riding, so there is no backwards hop: the whole rider + stick leans forward about the stick's tip
+LEAN = math.radians(float(os.environ.get("LEAN_DEG", 12)))
+R = Matrix.Rotation(LEAN, 3, up.cross(fwd))                 # (up x fwd) x up = fwd, so a positive turn tips the top forward (`side` may be flipped, do not use it)
+Rm = Mi.to_3x3() @ R @ arm.matrix_world.to_3x3()            # the same turn in armature space
+
 def pose(stick_lift, sink):
     for p in pb: p.matrix_basis = Matrix.Identity(4)
     bpy.context.view_layer.update()
     lift = base_lift + stick_lift - sink
-    pb["Bip01"].matrix = Matrix.Translation(Mi.to_3x3() @ (up * lift)) @ rest["Bip01"]
+    P = up * stick_lift                                     # pivot: the tip of the stick
+    tilt = lambda v: P + R @ (v - P)
+    pelvis = tilt(arm.matrix_world @ rest["Bip01"].translation + up * lift)
+    pb["Bip01"].matrix = Matrix.Translation(Mi @ pelvis) @ (Rm @ rest["Bip01"].to_3x3()).to_4x4()
     bpy.context.view_layer.update()
     for pre, sgn in (("L_", 1), ("R_", -1)):
-        foot_t = side * sgn * 0.17 * s + up * (pad_z + ankle + stick_lift)
-        hand_t = side * sgn * 0.14 * s + up * (grip_z + stick_lift) + fwd * 0.0
-        limb(f"Bip01_{pre}Thigh", f"Bip01_{pre}Calf", f"Bip01_{pre}Foot", foot_t, fwd + side * sgn * 0.15, True)
-        limb(f"Bip01_{pre}UpperArm", f"Bip01_{pre}Forearm", f"Bip01_{pre}Hand", hand_t, -fwd * 0.5 + side * sgn * 0.3 - up * 0.8, False)
+        foot_t = tilt(side * sgn * 0.17 * s + up * (pad_z + ankle + stick_lift))
+        hand_t = tilt(side * sgn * 0.14 * s + up * (grip_z + stick_lift))
+        limb(f"Bip01_{pre}Thigh", f"Bip01_{pre}Calf", f"Bip01_{pre}Foot", foot_t, R @ (fwd + side * sgn * 0.15), True)
+        limb(f"Bip01_{pre}UpperArm", f"Bip01_{pre}Forearm", f"Bip01_{pre}Hand", hand_t, R @ (-fwd * 0.5 + side * sgn * 0.3 - up * 0.8), False)
     for (h, pr), rel in prop_rel.items():
         pb[pr].matrix = pb[h].matrix @ rel
     bpy.context.view_layer.update()
