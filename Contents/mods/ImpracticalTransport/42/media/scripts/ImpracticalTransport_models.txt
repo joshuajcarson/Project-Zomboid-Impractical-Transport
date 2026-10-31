@@ -9,10 +9,10 @@ module Base
 
         attachment Bip01_Prop1
         {
-            /* hand bone axes in the idle pose: X right, Y forward, Z up. Rotating 90 about X turns the stick's up into the hand's up so the foot hangs down. */
-            rotate = 90.0000 0.0000 0.0000,
-            /* the right grip is 0.105 to the side and 0.69 up the stick (0.75 game units per metre); after that turn the height is along the hand's Z: cancel both so the right hand holds the right grip */
-            offset = -0.1050 0.0000 -0.6900,
+            /* hand bone axes in the idle pose: X right, Y forward, Z up. 78 about X = 90 (the stick's up becomes the hand's up) minus the 12 degree forward lean the rider has in Bob_PogoHop (LEAN_DEG in tools/blender/pogo_hop.py); 102 would lean it back. */
+            rotate = 78.0000 0.0000 0.0000,
+            /* the grip held is the stick's one at model x = -0.105 (0.75 game units per metre; flipped after a test showed the right hand on the other one), 0.69 up the stick. After the turn that point is at (-0.105, 0.69 cos 78, 0.69 sin 78): cancel it so the hand holds the grip. */
+            offset = 0.1050 -0.1434 -0.6749,
         }
     }
 }

@@ -104,7 +104,9 @@ def pose(stick_lift, sink):
         limb(f"Bip01_{pre}Thigh", f"Bip01_{pre}Calf", f"Bip01_{pre}Foot", foot_t, R @ (fwd + side * sgn * 0.15), True)
         limb(f"Bip01_{pre}UpperArm", f"Bip01_{pre}Forearm", f"Bip01_{pre}Hand", hand_t, R @ (-fwd * 0.5 + side * sgn * 0.3 - up * 0.8), False)
     for (h, pr), rel in prop_rel.items():
-        pb[pr].matrix = pb[h].matrix @ rel
+        # position follows the leaned hand, orientation stays the Bob_Idle one: in game the stick's lean is set by the item's attachment rotate (see
+        # ImpracticalTransport_models.txt), because a lean carried by this bone showed up sideways
+        pb[pr].matrix = Matrix.Translation((pb[h].matrix @ rel).translation) @ (idle_hand[h] @ rel.to_3x3()).to_4x4()
     bpy.context.view_layer.update()
     local = {}
     for n in order:
