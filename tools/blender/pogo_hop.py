@@ -20,9 +20,14 @@ DISTANCE = 0.44                 # Translation_Data travel per hop. Measured in g
 s = pogo_stick.GAME_UNITS_PER_METRE   # stick scale, so grips and pads land where the model puts them
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
-arm, meshes, _, _ = zx.import_body(GAME / "models_X/Skinned/MaleBody.x")
+arm, meshes, rl0, _ = zx.import_body(GAME / "models_X/Skinned/MaleBody.x")
 bpy.context.view_layer.update()
 pb = arm.pose.bones
+# The stick's hand attachment was measured against the hand in Bob_Idle, so in the hop the hands must keep that orientation or the stick swings away.
+zx.import_animation(GAME / "anims_X/Bob/Bob_Idle.X", arm, rl0, "Bob_Idle", fps=FPS)
+bpy.context.scene.frame_set(0); bpy.context.view_layer.update()
+idle_hand = {n: pb[n].matrix.to_3x3().copy() for n in ("Bip01_L_Hand", "Bip01_R_Hand")}
+arm.animation_data_clear()
 for p in pb: p.rotation_mode = "QUATERNION"
 rest = {b.name: b.matrix_local.copy() for b in arm.data.bones}
 order = [b.name for b in arm.data.bones]          # parents come before children
@@ -64,7 +69,7 @@ def limb(root, mid, end, target_world, pole_world, foot):
     aim(root, mid, (E - Hp).normalized(), Hp)
     q2 = aim(mid, end, (T - E).normalized(), E)
     rm = rest[end].to_3x3()
-    pb[end].matrix = Matrix.Translation(T) @ ((rm if foot else q2.to_matrix() @ rm)).to_4x4()
+    pb[end].matrix = Matrix.Translation(T) @ (rm if foot else idle_hand[end]).to_4x4()
     bpy.context.view_layer.update()
 
 # (frame, stick lift, body sink relative to the stick): crouch, push off, airborne, descend, land
