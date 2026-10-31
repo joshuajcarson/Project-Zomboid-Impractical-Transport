@@ -1,0 +1,83 @@
+module Base
+{
+	model Vehicle_Tricycle
+	{
+		mesh = vehicles/ImpracticalTransport/Vehicle_Tricycle,
+		shader = vehicle_multiuv,
+		invertX = FALSE,
+		scale = 0.01,
+	}
+
+	vehicle Tricycle
+	{
+		template! = Tricycle,
+		skin { texture = vehicles/ImpracticalTransport/Vehicle_Tricycle, }
+	}
+
+	/* Format copied from TEHE-Studios/ExpandedHelicopterEvents (42.15). All numbers are untested guesses. */
+	template vehicle Tricycle
+	{
+		mechanicType = 1,
+		offRoadEfficiency = 0.6,
+		engineRepairLevel = 0,
+		playerDamageProtection = 0,
+
+		model
+		{
+			file = Vehicle_Tricycle,
+			scale = 1.0,
+			offset = 0.0 0.0 0.0,
+		}
+
+		extents = 0.6 0.8 1.0,
+		physicsChassisShape = 0.6 0.8 1.0,
+		mass = 20,
+		centerOfMassOffset = 0.0 0.3 0.0,
+		shadowExtents = 0.6 1.0,
+		shadowOffset = 0.0 0.0,
+
+		/* The "slow" is the point: low force and top speed, weak brakes. */
+		engineForce = 250,
+		engineQuality = 100,
+		engineLoudness = 0,
+		maxSpeed = 8,
+		brakingForce = 20,
+		steeringIncrement = 0.04,
+		steeringClamp = 0.5,
+		wheelFriction = 1.4,
+
+		seats = 1,
+		template = PassengerSeat1,
+
+		passenger FrontLeft
+		{
+			position inside
+			{
+				offset = 0.0 0.5 0.0,
+				rotate = 0.0 0.0 0.0,
+			}
+			position outside
+			{
+				offset = 0.7 0.0 0.0,
+				rotate = 0.0 0.0 0.0,
+				area = SeatFrontLeft,
+			}
+		}
+
+		area SeatFrontLeft
+		{
+			xywh = 0.7 0.0 0.5 0.8,
+		}
+
+		wheel FrontLeft  { front = true,  offset = 0.0 0.0 0.4,  radius = 0.2, width = 0.1, }
+		wheel RearLeft   { front = false, offset = 0.25 0.0 -0.3, radius = 0.12, width = 0.1, }
+		wheel RearRight  { front = false, offset = -0.25 0.0 -0.3, radius = 0.12, width = 0.1, }
+
+		template = Seat/part/SeatFrontLeft,
+		part Seat*
+		{
+			table install   { skills = Mechanics:0, }
+			table uninstall { skills = Mechanics:0, }
+		}
+	}
+}
