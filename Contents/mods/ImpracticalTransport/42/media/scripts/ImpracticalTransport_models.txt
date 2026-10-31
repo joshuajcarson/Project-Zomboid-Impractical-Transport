@@ -1,11 +1,11 @@
 module Base
 {
-    /* mesh scale: the FBX is exported in metres from Blender; if it shows 100x too big or small in game, change `scale` only */
+    /* Blender's FBX export is in centimetres (100x the model's metres), so 0.01 gives a stick about 1.1 tiles tall; change `scale` only to resize */
     model PogoStick_3d
     {
         mesh = ImpracticalTransport/PogoStick,
         texture = ImpracticalTransport/PogoStick_texture,
-        scale = 1,
+        scale = 0.01,
 
         attachment Bip01_Prop1
         {
