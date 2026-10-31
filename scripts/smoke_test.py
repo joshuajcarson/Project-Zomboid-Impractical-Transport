@@ -89,6 +89,10 @@ def stage_play(keep):
     bot("smokeoutfit")
     ch.command(f"admin|{USER}")      # admin role so the chat commands below are accepted
     for it in ITEMS:
+        # the account persists between runs: clear old copies (client-only ones from before, server ones from earlier /additem) first
+        bot("smokeclear", it.split(".")[-1])
+        bot("smokechat", f"/removeitem {it} 0")
+        time.sleep(2)
         # /additem (pzwiki Admin_commands) adds the item on the SERVER and syncs it to the client. The bot's client-side giveitem
         # would leave the server without the item, so every real unequip/drop/place action would fail server-side.
         bot("smokechat", f'/additem "{USER}" {it}')
@@ -115,7 +119,10 @@ def stage_play(keep):
     # put it away like a player: a real unequip action must finish while the pogo anim nodes are active
     bot("smokeunequipaction"); time.sleep(6); bot("smokehands"); time.sleep(1)
     "RLBOT smokehands -> true true hands empty" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("unequip action never finished: hands still full")
-    pogo < walk or fail("pogo is not slower than walking")
+    walk2 = speed(12)   # one walk is noisy (path, terrain, loading chunks): compare against the faster of two bare-hand walks
+    base = max(walk, walk2)
+    print(f"bare-hand walks {walk:.2f} and {walk2:.2f}, pogo {pogo:.2f} tiles/s ({pogo / base:.0%} of the faster walk)")
+    pogo < base * 0.9 or fail("pogo is not clearly slower than walking")
     bot("smokeequipaction", "PogoStick")   # leave it in hand for whoever plays next
     print("play ready: god mode on, dressed, pogo stick equipped")
     keep or ch.close()

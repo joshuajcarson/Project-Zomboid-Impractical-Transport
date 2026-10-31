@@ -50,3 +50,10 @@ commands.smokeequipaction = function(p, a)
     ISTimedActionQueue.add(ISEquipWeaponAction:new(p, item, 50, true, item:isTwoHandWeapon()))
     return true, "queued"
 end
+
+-- smokeclear|Type: drop every copy of an item from this client's inventory and hands (earlier runs left client-only copies that the server rejects)
+commands.smokeclear = function(p, a)
+    p:setPrimaryHandItem(nil); p:setSecondaryHandItem(nil)
+    p:getInventory():RemoveAll((a and a.a) or "PogoStick")
+    return true, "cleared"
+end

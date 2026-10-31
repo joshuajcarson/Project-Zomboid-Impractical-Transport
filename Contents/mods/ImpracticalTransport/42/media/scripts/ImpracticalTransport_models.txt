@@ -9,10 +9,10 @@ module Base
 
         attachment Bip01_Prop1
         {
-            /* the hand holds the grips (0.46 up the stick), not the foot */
-            offset = 0.0000 -0.4600 0.0000,
-            /* hand bone: Y forward, Z up, X right in the idle pose. Rotating 90 about X turns the stick's up (Y) into the hand's up (Z), so the foot hangs down */
+            /* hand bone axes in the idle pose: X right, Y forward, Z up. Rotating 90 about X turns the stick's up into the hand's up so the foot hangs down. */
             rotate = 90.0000 0.0000 0.0000,
+            /* the grips are 0.46 up the stick, which after that turn is 0.46 along the hand's Z: cancel it so the hand holds the grips */
+            offset = 0.0000 0.0000 -0.4600,
         }
     }
 }
