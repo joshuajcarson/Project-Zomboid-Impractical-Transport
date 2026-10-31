@@ -89,10 +89,12 @@ def stage_play(keep):
     bot("smokeoutfit")
     ch.command(f"admin|{USER}")      # admin role so the chat commands below are accepted
     for it in ITEMS:
-        # the account persists between runs: clear old copies (client-only ones from before, server ones from earlier /additem) first
-        bot("smokeclear", it.split(".")[-1])
-        bot("smokechat", f"/removeitem {it} 0")
-        time.sleep(2)
+        # the account persists between runs: clear old copies first. Never empty the hands directly on the client: the server keeps its own
+        # hand slot, and a client-only change leaves the two disagreeing, after which no equip action works.
+        bot("smokeunequipaction"); time.sleep(4)
+        bot("smokechat", f"/removeitem {it} 0"); time.sleep(2)
+        bot("smokeclear", it.split(".")[-1])         # client-only leftovers from older runs
+        time.sleep(1)
         # /additem (pzwiki Admin_commands) adds the item on the SERVER and syncs it to the client. The bot's client-side giveitem
         # would leave the server without the item, so every real unequip/drop/place action would fail server-side.
         bot("smokechat", f'/additem "{USER}" {it}')
@@ -108,7 +110,7 @@ def stage_play(keep):
     def speed(dx):
         p0 = pos(); bot("goto", f"{p0['x'] + dx:.1f}", f"{p0['y']:.1f}"); t0 = time.time(); time.sleep(8)
         p1 = pos(); return math.hypot(p1["x"] - p0["x"], p1["y"] - p0["y"]) / (time.time() - t0)
-    bot("smokeunequip"); time.sleep(2)
+    bot("smokeunequipaction"); time.sleep(4)
     walk = speed(12)
     bot("smokeequipaction", "PogoStick"); time.sleep(5)
     logs = sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)

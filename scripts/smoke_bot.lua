@@ -26,12 +26,6 @@ end
 
 -- the harness re-equips its weapon whenever the hands are empty; turn that off so items can be put away by hand
 RL.autoRearm = false
--- smokeunequip: empty both hands (for a no-item speed baseline)
-commands.smokeunequip = function(p, a)
-    p:setPrimaryHandItem(nil); p:setSecondaryHandItem(nil)
-    return true, "hands empty"
-end
-
 -- smokeunequipaction: put the held item away the way a player does (a real timed action); smokehands then reports the result in the log
 commands.smokeunequipaction = function(p, a)
     local item = p:getPrimaryHandItem()
@@ -51,9 +45,8 @@ commands.smokeequipaction = function(p, a)
     return true, "queued"
 end
 
--- smokeclear|Type: drop every copy of an item from this client's inventory and hands (earlier runs left client-only copies that the server rejects)
+-- smokeclear|Type: drop every copy of an item from this client's inventory (hands are left to real actions) (earlier runs left client-only copies that the server rejects)
 commands.smokeclear = function(p, a)
-    p:setPrimaryHandItem(nil); p:setSecondaryHandItem(nil)
     p:getInventory():RemoveAll((a and a.a) or "PogoStick")
     return true, "cleared"
 end
