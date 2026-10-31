@@ -29,6 +29,10 @@ bpy.context.scene.frame_set(0); bpy.context.view_layer.update()
 idle_hand = {n: pb[n].matrix.to_3x3().copy() for n in ("Bip01_L_Hand", "Bip01_R_Hand")}
 # Bip01_Prop1 is the bone the model attaches to and Bob_Idle poses it off the hand; keep that offset or the stick tilts away from the grip
 prop_rel = {(h, pr): pb[h].matrix.inverted() @ pb[pr].matrix for h, pr in (("Bip01_R_Hand", "Bip01_Prop1"), ("Bip01_L_Hand", "Bip01_Prop2"))}
+idle_local = {}
+for b in arm.data.bones:     # Bob_Idle frame 0 as bone-local matrices: the standing pose the mount clip starts from and the dismount clip ends on
+    par = pb[b.name].parent
+    idle_local[b.name] = (par.matrix.inverted() @ pb[b.name].matrix) if par else pb[b.name].matrix.copy()
 arm.animation_data_clear()
 for p in pb: p.rotation_mode = "QUATERNION"
 rest = {b.name: b.matrix_local.copy() for b in arm.data.bones}
@@ -117,13 +121,14 @@ def key_block(kind, rows):
     lines.append("  }")
     return "\n".join(lines)
 
-end_tick = int(FRAMES / FPS * TPS)
 tick = lambda fr: int(fr / FPS * TPS)
-body = []
-for n in order:
+def clip_body(samples, nframes, travel):
+  end_tick = tick(nframes)
+  body = []
+  for n in order:
     if n == "Translation_Data":
         # forward travel along its local axis (same rotation key and direction as the game's Bob_Walk clip)
-        rot, trans = [(0, [-0.5, -0.5, 0.5, 0.5]), (end_tick, [-0.5, -0.5, 0.5, 0.5])], [(0, [0.0, 0.0, 0.0]), (end_tick, [0.0, 0.0, -DISTANCE])]
+        rot, trans = [(0, [-0.5, -0.5, 0.5, 0.5]), (end_tick, [-0.5, -0.5, 0.5, 0.5])], [(0, [0.0, 0.0, 0.0]), (end_tick, [0.0, 0.0, -travel])]
     else:
         frames = sorted(samples)
         rot, trans = [], []
@@ -136,6 +141,7 @@ for n in order:
             rot.append((tick(fr), [q.w, -q.x, -q.y, -q.z]))        # .X rotation keys are conjugated relative to Blender's
             trans.append((tick(fr), list(m.translation)))
     body.append(f" Animation {{\n  {{ {n} }}\n{key_block('S', [(0, [1, 1, 1]), (end_tick, [1, 1, 1])])}\n{key_block('R', rot)}\n{key_block('T', trans)}\n }}")
+  return body
 
 TEMPLATES = pogo_stick.X_TEMPLATES + """template Animation { <3d82ab4f-62da-11cf-ab39-0020af71e433> [...] }
 template AnimationSet { <3d82ab50-62da-11cf-ab39-0020af71e433> [Animation <3d82ab4f-62da-11cf-ab39-0020af71e433>] }
@@ -182,8 +188,22 @@ def frame_text(name, local, depth=0):
 SKELETON = "".join(frame_text(n, l) for n, l in kids.get(None, []))
 TICKS = "AnimTicksPerSecond {\n 4800;\n}\n"
 OUT_X.parent.mkdir(parents=True, exist_ok=True)
-OUT_X.write_text(TEMPLATES + MATERIAL + SKELETON + TICKS + "AnimationSet Bob_PogoHop {\n" + "\n".join(body) + "\n}\n", encoding="latin-1", newline="\n")
-print("wrote", OUT_X, "bones", len(order), "keys", len(KEYS))
+def write_clip(name, samples, nframes, travel):
+    out = OUT_X.with_name(f"{name}.X")
+    out.write_text(TEMPLATES + MATERIAL + SKELETON + TICKS + f"AnimationSet {name} {{\n" + "\n".join(clip_body(samples, nframes, travel)) + "\n}\n", encoding="latin-1", newline="\n")
+    print("wrote", out, "bones", len(order), "keys", len(samples))
+
+def blend(a, b, w):
+    out = {}
+    for n in order:
+        q = a[n].to_quaternion().slerp(b[n].to_quaternion(), w)
+        out[n] = Matrix.Translation(a[n].translation.lerp(b[n].translation, w)) @ q.to_matrix().to_4x4()
+    return out
+
+write_clip("Bob_PogoHop", samples, FRAMES, DISTANCE)
+MOUNT_FRAMES = 24     # 0.8 s from standing with the stick in hand to the first crouch of a hop; the dismount is the same motion backwards
+write_clip("Bob_PogoMount", {0: idle_local, MOUNT_FRAMES // 2: blend(idle_local, samples[0], 0.5), MOUNT_FRAMES: samples[0]}, MOUNT_FRAMES, 0)
+write_clip("Bob_PogoDismount", {0: samples[FRAMES], MOUNT_FRAMES // 2: blend(samples[FRAMES], idle_local, 0.5), MOUNT_FRAMES: idle_local}, MOUNT_FRAMES, 0)
 
 # --- round-trip: read the clip back with the game-format reader and render frames to check the motion
 bpy.ops.wm.read_factory_settings(use_empty=True)

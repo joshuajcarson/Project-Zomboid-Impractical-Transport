@@ -10,6 +10,8 @@ local PROFILES = {
 
 local riding = {}
 local held = {}
+local transitionUntil = {}
+local TRANSITION_SECONDS = 0.8     -- length of Bob_PogoMount / Bob_PogoDismount (24 frames at 30 fps)
 
 -- While a timed action such as unequip, drop or place runs, step off the pogo anim nodes so the action's own animation can finish.
 -- Walking actions (click-to-move) don't count: they are plain movement.
@@ -40,6 +42,16 @@ Events.OnPlayerUpdate.Add(function(player)
         riding[num] = active
         player:setVariable("PogoActive", active)
         print("ImpracticalTransport riding=" .. tostring(active))
+        -- hop on / step off: the mount and dismount nodes play while PogoTransition names them; the timer below clears it
+        -- even if the clip's own end never does (the clips are TRANSITION_SECONDS long)
+        if isHeld then
+            player:setVariable("PogoTransition", active and "mount" or "dismount")
+            transitionUntil[num] = getTimestampMs() + TRANSITION_SECONDS * 1000
+        end
+    end
+    if transitionUntil[num] and getTimestampMs() > transitionUntil[num] then
+        transitionUntil[num] = nil
+        player:setVariable("PogoTransition", "")
     end
     if not active then return end
 
