@@ -30,7 +30,7 @@ fwd = rest_world_head("Bip01_L_Toe0") - rest_world_head("Bip01_L_Foot"); fwd.z =
 side = Vector((0, 0, 1)).cross(fwd)
 if (rest_world_head("Bip01_L_Hand") - rest_world_head("Bip01_R_Hand")).dot(side) < 0: side = -side   # side = rider's left
 
-# size the stick to THIS rider so both feet and hands reach: pads at 0.3 and grips at 1.07 in the stick's own units.
+# size the stick to THIS rider so both feet and hands reach: pads at 0.3 and grips at 0.92 in the stick's own units.
 # Stance: legs ~85% extended on the pads, hands hanging at about half an arm length below the shoulders.
 dist = lambda a, b: (rest[a].translation - rest[b].translation).length
 Lleg = dist("Bip01_L_Thigh", "Bip01_L_Calf") + dist("Bip01_L_Calf", "Bip01_L_Foot")
@@ -38,7 +38,7 @@ Larm = dist("Bip01_L_UpperArm", "Bip01_L_Forearm") + dist("Bip01_L_Forearm", "Bi
 hip_z = rest_world_head("Bip01_L_Thigh").z
 sh_off = rest_world_head("Bip01_L_UpperArm").z - hip_z
 LEG_EXT = 0.85
-s = (ankle + LEG_EXT * Lleg + sh_off - 0.5 * Larm) / 0.77
+s = (ankle + LEG_EXT * Lleg + sh_off - 0.5 * Larm) / 0.62
 base_z = s * 0.3 + ankle + LEG_EXT * Lleg - hip_z          # lift the rider so the hips sit at that stance height
 print("stick scale", round(s, 3), "base_z", round(base_z, 3), "Lleg", round(Lleg, 3), "Larm", round(Larm, 3), "H", round(H, 3))
 
@@ -47,7 +47,7 @@ rider = bpy.data.objects.new("Rider", None); bpy.context.scene.collection.object
 
 # visible aim points for hand editing in Blender: where each hand/foot should end up (they ride with the stick)
 for pre, sgn in (("L", 1), ("R", -1)):
-    for nm, off in ((f"Aim_{pre}_Foot", side * sgn * 0.13 * s + Vector((0, 0, 0.3 * s + ankle))), (f"Aim_{pre}_Hand", side * sgn * 0.15 * s + Vector((0, 0, 1.07 * s)))):
+    for nm, off in ((f"Aim_{pre}_Foot", side * sgn * 0.17 * s + Vector((0, 0, 0.3 * s + ankle))), (f"Aim_{pre}_Hand", side * sgn * 0.14 * s + Vector((0, 0, 0.92 * s)))):
         e = bpy.data.objects.new(nm, None); e.empty_display_type = "SPHERE"; e.empty_display_size = 0.02; e.location = off
         bpy.context.scene.collection.objects.link(e); e.parent = rider
 
@@ -95,8 +95,8 @@ for f, rz, bz in keys:
     arm.location.z = base_z + rz + bz; arm.keyframe_insert("location", index=2, frame=f)
     bpy.context.view_layer.update()
     for pre, sgn in (("L_", 1), ("R_", -1)):
-        foot_t = rider.location + side * sgn * 0.13 * s + Vector((0, 0, 0.3 * s + ankle))
-        hand_t = rider.location + side * sgn * 0.15 * s + Vector((0, 0, 1.07 * s))
+        foot_t = rider.location + side * sgn * 0.17 * s + Vector((0, 0, 0.3 * s + ankle))
+        hand_t = rider.location + side * sgn * 0.14 * s + Vector((0, 0, 0.92 * s))
         limb(f"Bip01_{pre}Thigh", f"Bip01_{pre}Calf", f"Bip01_{pre}Foot", foot_t, fwd + side * sgn * 0.15, True)
         limb(f"Bip01_{pre}UpperArm", f"Bip01_{pre}Forearm", f"Bip01_{pre}Hand", hand_t, -fwd * 0.4 + side * sgn * 0.9 + Vector((0, 0, -0.3)), False)
         key([f"Bip01_{pre}{n}" for grp in LIMBS for n in grp[:3]], f)

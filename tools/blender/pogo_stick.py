@@ -34,19 +34,19 @@ def build():
 
     add(bpy.ops.mesh.primitive_cylinder_add, RUBBER, "Foot", radius=0.035, depth=0.035, location=(0, 0, 0.0175), vertices=12)
     rod((0, 0, 0.035), (0, 0, 0.26), 0.012, STEEL, "Tip")
-    box((0, 0, 0.27), (0.3, 0.07, 0.03), TEAL, "FootHub")
-    box((-0.13, 0, 0.292), (0.11, 0.13, 0.014), ORANGE, "PadL")
-    box((0.13, 0, 0.292), (0.11, 0.13, 0.014), PURPLE, "PadR")
-    rod((0, 0, 0.26), (0, 0, 0.9), 0.011, STEEL, "CentreRod")
+    box((0, 0, 0.27), (0.42, 0.07, 0.03), TEAL, "FootHub")
+    box((-0.17, 0, 0.292), (0.14, 0.14, 0.014), ORANGE, "PadL")
+    box((0.17, 0, 0.292), (0.14, 0.14, 0.014), PURPLE, "PadR")
+    rod((0, 0, 0.26), (0, 0, 0.92), 0.011, STEEL, "CentreRod")
     for i in range(11):    # coils as stacked rings, low poly
         add(bpy.ops.mesh.primitive_torus_add, YELLOW, f"Coil{i}", major_radius=0.032, minor_radius=0.007,
             location=(0, 0, 0.32 + i * 0.034), major_segments=12, minor_segments=5)
     for s in (-1, 1):
-        rod((s * 0.12, 0, 0.27), (s * 0.12, 0, 0.74), 0.011, TEAL, "RailLow")
-        rod((s * 0.12, 0, 0.74), (s * 0.03, 0, 0.86), 0.011, TEAL, "RailIn")
-        rod((s * 0.03, 0, 0.86), (s * 0.13, 0, 1.0), 0.011, TEAL, "RailOut")
-        rod((s * 0.13, 0, 1.0), (s * 0.15, 0, 1.1), 0.021, ORANGE if s < 0 else PURPLE, "Grip")
-    box((0, 0, 0.74), (0.26, 0.03, 0.025), TEAL, "Brace")
+        rod((s * 0.058, 0, 0.27), (s * 0.058, 0, 0.74), 0.011, TEAL, "RailLow")         # rails hug the spring
+        rod((s * 0.058, 0, 0.74), (s * 0.03, 0, 0.9), 0.011, TEAL, "RailIn")
+        rod((s * 0.03, 0, 0.9), (s * 0.19, 0, 0.9), 0.011, STEEL, "Bar")                # horizontal handlebar
+        rod((s * 0.09, 0, 0.9), (s * 0.19, 0, 0.9), 0.021, ORANGE if s < 0 else PURPLE, "Grip")
+    box((0, 0, 0.74), (0.12, 0.03, 0.025), TEAL, "Brace")
 
     bpy.ops.object.select_all(action="DESELECT")
     for o in bpy.data.objects:
