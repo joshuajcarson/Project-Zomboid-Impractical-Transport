@@ -7,6 +7,9 @@ import bpy, math, pathlib
 from mathutils import Vector
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+MEDIA = ROOT / "Contents/mods/ImpracticalTransport/42/media"
+TEXTURE = MEDIA / "textures/ImpracticalTransport/PogoStick_texture.png"
+ICON = MEDIA / "textures/Item_PogoStick.png"
 XFILE = ROOT / "Contents/mods/ImpracticalTransport/42/media/models_X/ImpracticalTransport/PogoStick.X"
 PREVIEW = ROOT / "previews"
 GAME_UNITS_PER_METRE = 0.75  # the survivor is ~0.9 units tall and its arms are short, so the stick is larger than life: hands at the grips, feet on the pads
@@ -74,12 +77,24 @@ template MeshTextureCoords { <f6f23f40-7686-11cf-8f52-0040333594a3> DWORD nTextu
 """
 
 
+def write_palette(colours, swatch=8):
+    """One flat swatch per material, side by side: the game has one texture per model, so colours come from UVs."""
+    img = bpy.data.images.new("PogoStickPalette", swatch * len(colours), swatch, alpha=False)
+    pixel = lambda c: [v ** (1 / 2.2) for v in c] + [1.0]      # diffuse_color is linear; the PNG holds the sRGB value the viewport shows
+    img.pixels = [v for _ in range(swatch) for c in colours for _ in range(swatch) for v in pixel(c)]
+    TEXTURE.parent.mkdir(parents=True, exist_ok=True)
+    img.filepath_raw = str(TEXTURE); img.file_format = "PNG"; img.save()
+
+
+
+
 def export_x(obj, path, scale=GAME_UNITS_PER_METRE):
     """Static mesh as a text DirectX .X file in the game's units, Y up (the format vanilla item models use).
     Blender (x, y, z up) -> game (x, z, y): swapping two axes flips handedness, which is what DirectX expects."""
     import bmesh
     bm = bmesh.new(); bm.from_mesh(obj.data); bmesh.ops.triangulate(bm, faces=bm.faces[:])
-    uv = bm.loops.layers.uv.active
+    mats = obj.data.materials
+    write_palette([m.diffuse_color[:3] for m in mats])
     verts, uvs, norms = [], [], []
     for f in bm.faces:
         n = f.normal
@@ -87,7 +102,7 @@ def export_x(obj, path, scale=GAME_UNITS_PER_METRE):
             c = l.vert.co
             verts.append((c.x * scale, c.z * scale, c.y * scale))
             norms.append((n.x, n.z, n.y))
-            uvs.append((l[uv].uv.x, 1 - l[uv].uv.y) if uv else (0.5, 0.5))
+            uvs.append(((f.material_index + 0.5) / len(mats), 0.5))      # every face samples the middle of its material's swatch
     nt = len(verts) // 3
     end = lambda i, n: "," if i < n - 1 else ";"
     tri = "".join(f"3;{3 * i},{3 * i + 1},{3 * i + 2};{end(i, nt)}\n" for i in range(nt))
@@ -119,6 +134,12 @@ def main():
                            ("three_quarter", (math.radians(75), 0, math.radians(40)), (2, -2.4, 1.0))):
         cam.rotation_euler, cam.location = rot, loc
         sc.render.filepath = str(PREVIEW / f"pogo_{name}.png"); bpy.ops.render.render(write_still=True)
+    # inventory icon: a small transparent render, tilted so the foot is at the lower left (item icons are 32x32 in the game; 64 is crisper when scaled)
+    sc.render.film_transparent = True; sc.render.resolution_x = sc.render.resolution_y = 64
+    sc.render.image_settings.color_mode = "RGBA"; cam.data.ortho_scale = 1.45
+    look = Vector((0, 0, 0.46)); cam.location = look + Vector((2, -2.4, 1.0)).normalized() * 6      # aim at the middle of the stick
+    cam.rotation_euler = (look - cam.location).to_track_quat("-Z", "Y").to_euler()
+    sc.render.filepath = str(ICON); bpy.ops.render.render(write_still=True)
     print("exported", XFILE)
 
 
