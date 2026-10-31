@@ -10,7 +10,7 @@ module Base
         attachment Bip01_Prop1
         {
             /* the hand holds the grips (0.46 up the stick), not the foot */
-            offset = 0.0000 0.4600 0.0000,
+            offset = 0.0000 -0.4600 0.0000,
             rotate = 0.0000 0.0000 0.0000,
         }
     }

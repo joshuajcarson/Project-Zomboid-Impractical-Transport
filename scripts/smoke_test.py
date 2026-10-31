@@ -9,6 +9,7 @@ HERE = pathlib.Path(__file__).resolve().parent.parent
 MOD = HERE / "Contents" / "mods" / "ImpracticalTransport"
 MOD_ID = "ImpracticalTransport"
 RL = pathlib.Path(os.environ.get("PZ_RL_REPO", r"C:\bench\project-zomboid-rl-based-players"))
+ARENA = (10770, 9410)   # open field the RL harness uses for its fight arena; the character otherwise resumes wherever it was left
 USER = "Smoke1"   # fresh account: a dead character from an earlier run would otherwise be reused
 ITEMS = ["ImpracticalTransport.PogoStick"]
 VEHICLES = []   # the tricycle vehicle script is parked while the transports move to held items
@@ -82,6 +83,8 @@ def stage_play(keep):
     lua.write_text(lua.read_text(encoding="utf-8") + "\n" + (HERE / "scripts" / "smoke_bot.lua").read_text(encoding="utf-8"), encoding="utf-8")
     bot("reload"); time.sleep(3)
     bot("god", "1")      # keep the tester alive; a dead character costs minutes to replace
+    bot("tp", str(ARENA[0]), str(ARENA[1])); time.sleep(10)      # start every run in the open, not at a fence
+    me = next(p for p in ch.wait_obs(timeout=10)["p"] if p["u"] == USER)
     ch.command(f"heal|{USER}"); ch.command(f"zclear|{me['x']:.0f}|{me['y']:.0f}|80")
     bot("smokeoutfit")
     ch.command(f"admin|{USER}")      # admin role so the chat commands below are accepted
