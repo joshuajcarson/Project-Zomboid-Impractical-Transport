@@ -1,0 +1,86 @@
+module Base
+{
+    model PogoCal1_3d
+    {
+        mesh = ImpracticalTransport/PogoStick,
+        texture = ImpracticalTransport/PogoStick_texture,
+        scale = 1,
+        attachment Bip01_Prop1
+        {
+            rotate = 90.0000 0.0000 0.0000,
+            offset = 0.1050 0.0000 -0.6900,
+        }
+    }
+
+    model PogoCal2_3d
+    {
+        mesh = ImpracticalTransport/PogoStick,
+        texture = ImpracticalTransport/PogoStick_texture,
+        scale = 1,
+        attachment Bip01_Prop1
+        {
+            rotate = 90.0000 0.0000 90.0000,
+            offset = 0.1050 0.0000 -0.6900,
+        }
+    }
+
+    model PogoCal3_3d
+    {
+        mesh = ImpracticalTransport/PogoStick,
+        texture = ImpracticalTransport/PogoStick_texture,
+        scale = 1,
+        attachment Bip01_Prop1
+        {
+            rotate = 90.0000 0.0000 -90.0000,
+            offset = 0.1050 0.0000 -0.6900,
+        }
+    }
+
+    model PogoCal4_3d
+    {
+        mesh = ImpracticalTransport/PogoStick,
+        texture = ImpracticalTransport/PogoStick_texture,
+        scale = 1,
+        attachment Bip01_Prop1
+        {
+            rotate = 90.0000 25.0000 0.0000,
+            offset = 0.1050 0.0000 -0.6900,
+        }
+    }
+
+    model PogoCal5_3d
+    {
+        mesh = ImpracticalTransport/PogoStick,
+        texture = ImpracticalTransport/PogoStick_texture,
+        scale = 1,
+        attachment Bip01_Prop1
+        {
+            rotate = 90.0000 -25.0000 0.0000,
+            offset = 0.1050 0.0000 -0.6900,
+        }
+    }
+
+    model PogoCal6_3d
+    {
+        mesh = ImpracticalTransport/PogoStick,
+        texture = ImpracticalTransport/PogoStick_texture,
+        scale = 1,
+        attachment Bip01_Prop1
+        {
+            rotate = 90.0000 0.0000 25.0000,
+            offset = 0.1050 0.0000 -0.6900,
+        }
+    }
+
+    model PogoCal7_3d
+    {
+        mesh = ImpracticalTransport/PogoStick,
+        texture = ImpracticalTransport/PogoStick_texture,
+        scale = 1,
+        attachment Bip01_Prop1
+        {
+            rotate = 90.0000 0.0000 -25.0000,
+            offset = 0.1050 0.0000 -0.6900,
+        }
+    }
+}

@@ -4,7 +4,7 @@ Meters, Z up, foot of the stick at z=0. Flat-colour materials only (the game get
 Layout (twin-rail pogo): rubber foot + steel tip, foot pads at the bottom of two side rails, a coil spring around a
 centre rod, rails that flare in and then out to two grips."""
 import bpy, math, pathlib
-from mathutils import Vector
+from mathutils import Quaternion, Vector
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 MEDIA = ROOT / "Contents/mods/ImpracticalTransport/42/media"
@@ -136,9 +136,10 @@ def main():
         sc.render.filepath = str(PREVIEW / f"pogo_{name}.png"); bpy.ops.render.render(write_still=True)
     # inventory icon: a small transparent render, tilted so the foot is at the lower left (item icons are 32x32 in the game; 64 is crisper when scaled)
     sc.render.film_transparent = True; sc.render.resolution_x = sc.render.resolution_y = 64
-    sc.render.image_settings.color_mode = "RGBA"; cam.data.ortho_scale = 1.45
+    sc.render.image_settings.color_mode = "RGBA"; cam.data.ortho_scale = 1.15
     look = Vector((0, 0, 0.46)); cam.location = look + Vector((2, -2.4, 1.0)).normalized() * 6      # aim at the middle of the stick
-    cam.rotation_euler = (look - cam.location).to_track_quat("-Z", "Y").to_euler()
+    # roll the camera so the stick runs diagonally across the icon, like vanilla tools and weapons, and the frame stays tight on it
+    cam.rotation_euler = ((look - cam.location).to_track_quat("-Z", "Y") @ Quaternion((0, 0, 1), math.radians(-40))).to_euler()
     sc.render.filepath = str(ICON); bpy.ops.render.render(write_still=True)
     print("exported", XFILE)
 

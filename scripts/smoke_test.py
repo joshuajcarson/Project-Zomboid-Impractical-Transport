@@ -11,7 +11,7 @@ MOD_ID = "ImpracticalTransport"
 RL = pathlib.Path(os.environ.get("PZ_RL_REPO", r"C:\bench\project-zomboid-rl-based-players"))
 ARENA = (4010, 11767)   # the RL harness's open field (no buildings, fences, hutches or forest within 30 squares; the old arena at 10770,9410 sits beside a house, shed and playground); the character otherwise resumes wherever it was left
 USER = "Smoke1"   # fresh account: a dead character from an earlier run would otherwise be reused
-ITEMS = ["ImpracticalTransport.PogoStick"]
+ITEMS = ["ImpracticalTransport.PogoStick"] + [f"ImpracticalTransport.PogoCal{i}" for i in range(1, 8)]   # the numbered ones are the throw-away rotate calibration set (tools/make_calibration.py)
 VEHICLES = []   # the tricycle vehicle script is parked while the transports move to held items
 ERR = re.compile(r"ERROR|Exception|WARN.*(script|model|texture)", re.I)
 

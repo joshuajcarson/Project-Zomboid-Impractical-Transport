@@ -8,6 +8,9 @@ local PROFILES = {
     ["ImpracticalTransport.PogoStick"] = { walk = 1.0, run = 1.0, drain = 0.0035 },
 }
 
+-- throw-away calibration variants (tools/make_calibration.py): same behaviour as the real stick
+for i = 1, 7 do PROFILES["ImpracticalTransport.PogoCal" .. i] = PROFILES["ImpracticalTransport.PogoStick"] end
+
 local riding = {}
 local held = {}
 local transitionUntil = {}
