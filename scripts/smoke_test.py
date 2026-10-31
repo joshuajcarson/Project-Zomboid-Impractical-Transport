@@ -3,7 +3,7 @@
   python scripts/smoke_test.py server          + boot a dev server with the mod, scan its log for errors
   python scripts/smoke_test.py play [--keep]   + (any stage takes --no-static) rendered client logs in, gets the items, vehicle spawned next to it; leaves the game open for you
 Stages run in order and stop at the first failure. Exit 0 = pass. Stop everything afterwards: python <RL repo>/scripts/cleanup.py"""
-import os, pathlib, re, shutil, subprocess, sys, time
+import math, os, pathlib, re, shutil, subprocess, sys, time
 
 HERE = pathlib.Path(__file__).resolve().parent.parent
 MOD = HERE / "Contents" / "mods" / "ImpracticalTransport"
@@ -11,7 +11,7 @@ MOD_ID = "ImpracticalTransport"
 RL = pathlib.Path(os.environ.get("PZ_RL_REPO", r"C:\bench\project-zomboid-rl-based-players"))
 USER = "Smoke1"   # fresh account: a dead character from an earlier run would otherwise be reused
 ITEMS = ["ImpracticalTransport.PogoStick"]
-VEHICLES = ["Base.Tricycle"]
+VEHICLES = []   # the tricycle vehicle script is parked while the transports move to held items
 ERR = re.compile(r"ERROR|Exception|WARN.*(script|model|texture)", re.I)
 
 def fail(msg): print("FAIL", msg); sys.exit(1)
@@ -21,7 +21,7 @@ def static():
     for f in (ver / "mod.info", MOD / "common" / "mod.info"):
         f.exists() or fail(f"missing {f}")
     media = ver / "media"
-    for s in (media / "scripts" / "vehicles").glob("*.txt"):
+    for s in (media / "scripts").rglob("*.txt"):
         text = s.read_text(encoding="utf-8")
         for mesh in re.findall(rf"mesh\s*=\s*(\S*{MOD_ID}\S*?),", text):   # vanilla assets live in the game, only check ours
             (media / "models_X" / f"{mesh}.fbx").exists() or fail(f"{s.name}: missing models_X/{mesh}.fbx")
@@ -89,10 +89,20 @@ def stage_play(keep):
     x, y = int(me["x"]) + 3, int(me["y"])
     ch.command(f"admin|{USER}")      # admin role so the chat command below is accepted
     for v in VEHICLES:
-        # /addvehicle is the documented admin command (pzwiki Admin_commands); the debug call is the fallback.
+        # /addvehicle is the documented admin command (pzwiki Admin_commands).
         bot("smokechat", f'/addvehicle "{v}" "{USER}"')
         time.sleep(3)
-    print("play ready: god mode on, dressed, items given, vehicles spawned at", x, y)
+    # ride check: equip the pogo stick, expect the riding flag in the client log, then walk and report the speed
+    bot("equip", "PogoStick"); time.sleep(4)
+    logs = sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)
+    "ImpracticalTransport riding=true" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("riding flag never set (see client log)")
+    def pos():
+        return next(p for p in ch.wait_obs(timeout=10)["p"] if p["u"] == USER)
+    p0 = pos(); bot("goto", f"{p0['x'] + 12:.1f}", f"{p0['y']:.1f}"); t0 = time.time(); time.sleep(8)
+    p1 = pos(); moved = math.hypot(p1["x"] - p0["x"], p1["y"] - p0["y"])
+    print(f"ride: moved {moved:.1f} tiles in {time.time() - t0:.0f}s = {moved / (time.time() - t0):.2f} tiles/s")
+    moved > 0.5 or fail("rider did not move")
+    print("play ready: god mode on, dressed, pogo stick equipped")
     keep or ch.close()
 
 if __name__ == "__main__":

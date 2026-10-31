@@ -2,13 +2,15 @@ module ImpracticalTransport
 {
     imports { Base }
 
-    /* Placeholder item: no model yet, reuses a vanilla icon/model. Held two-handed. */
+    /* Held two-handed. Icon is still a vanilla placeholder. */
     item PogoStick
     {
         DisplayName = Pogo Stick,
         ItemType = base:weapon,
         Weight = 2.5,
         Icon = BaseballBat,
+        WeaponSprite = PogoStick_3d,
+        WorldStaticModel = PogoStick_3d,
         TwoHandWeapon = TRUE,
         RequiresEquippedBothHands = TRUE,
         MaxRange = 0.5,

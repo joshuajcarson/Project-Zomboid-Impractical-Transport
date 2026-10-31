@@ -1,0 +1,16 @@
+module Base
+{
+    /* mesh scale: the FBX is exported in metres from Blender; if it shows 100x too big or small in game, change `scale` only */
+    model PogoStick_3d
+    {
+        mesh = ImpracticalTransport/PogoStick,
+        texture = ImpracticalTransport/PogoStick_texture,
+        scale = 1,
+
+        attachment Bip01_Prop1
+        {
+            offset = 0.0000 0.0000 0.0000,
+            rotate = 0.0000 0.0000 0.0000,
+        }
+    }
+}

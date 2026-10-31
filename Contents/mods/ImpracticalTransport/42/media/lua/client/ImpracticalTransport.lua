@@ -1,15 +1,40 @@
 -- Rider state is derived from the equipped item each tick, so no saved state to migrate across patches.
+-- The anim nodes in AnimSets/player/*_pogo.xml play only while PogoActive is true and take their speed from the variables set here.
 ImpracticalTransport = ImpracticalTransport or {}
 
-local RIDEABLE = { ["ImpracticalTransport.PogoStick"] = true }
+-- walk/run: animation speed scale (below 1 is slower than normal walking); drain: endurance lost per second while moving
+local PROFILES = {
+    ["ImpracticalTransport.PogoStick"] = { walk = 0.45, run = 0.6, drain = 0.0035 },
+}
 
-function ImpracticalTransport.getRidden(player)
+local riding = {}
+
+function ImpracticalTransport.getProfile(player)
     local item = player:getPrimaryHandItem()
-    return item and RIDEABLE[item:getFullType()] and item or nil
+    return item and PROFILES[item:getFullType()] or nil
 end
 
--- shortcut: logs only; real hop/speed behaviour needs in-game tuning, see README.
 Events.OnPlayerUpdate.Add(function(player)
-    local riding = ImpracticalTransport.getRidden(player) ~= nil
-    player:setVariable("ImpracticalRiding", riding)
+    local profile = ImpracticalTransport.getProfile(player)
+    local num = player:getPlayerNum()
+    local active = profile ~= nil
+    if active ~= (riding[num] or false) then
+        riding[num] = active
+        player:setVariable("PogoActive", active)
+        print("ImpracticalTransport riding=" .. tostring(active))
+    end
+    if not active then return end
+
+    local stats = player:getStats()
+    local endurance = stats:get(CharacterStat.ENDURANCE)
+    local tired = endurance >= 0.5 and 1 or math.max(0.5, endurance * 0.9 + 0.5)   -- slower when winded
+    player:setVariable("PogoWalkSpeed", profile.walk * tired)
+    player:setVariable("PogoRunSpeed", profile.run * tired)
+    player:setVariable("PogoSpeed", 1)
+
+    if player:isPlayerMoving() then
+        local fitness = player:getPerkLevel(Perks.Fitness)
+        local perSecond = profile.drain * (1.5 - fitness * 0.05)                    -- fitter riders tire slower, never zero
+        stats:set(CharacterStat.ENDURANCE, math.max(0, endurance - perSecond * GameTime.getInstance():getTimeDelta()))
+    end
 end)
