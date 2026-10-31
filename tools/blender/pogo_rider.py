@@ -25,11 +25,22 @@ bones = arm.data.bones
 rest = {b.name: b.matrix_local.copy() for b in bones}              # armature-space rest matrices
 rest_world_head = lambda n: arm.matrix_world @ rest[n].translation
 H = (rest_world_head("Bip01_Head").z) * 1.12                       # character height in scene units
-s = H / 1.8 * 1.3                                                  # the stick is modelled for a child: 1.3x for an adult rider (pads ~0.4 m, grips at chest height)
 ankle = rest_world_head("Bip01_L_Foot").z                          # ankle height above the sole at rest
 fwd = rest_world_head("Bip01_L_Toe0") - rest_world_head("Bip01_L_Foot"); fwd.z = 0; fwd.normalize()
 side = Vector((0, 0, 1)).cross(fwd)
 if (rest_world_head("Bip01_L_Hand") - rest_world_head("Bip01_R_Hand")).dot(side) < 0: side = -side   # side = rider's left
+
+# size the stick to THIS rider so both feet and hands reach: pads at 0.3 and grips at 1.07 in the stick's own units.
+# Stance: legs ~85% extended on the pads, hands hanging at about half an arm length below the shoulders.
+dist = lambda a, b: (rest[a].translation - rest[b].translation).length
+Lleg = dist("Bip01_L_Thigh", "Bip01_L_Calf") + dist("Bip01_L_Calf", "Bip01_L_Foot")
+Larm = dist("Bip01_L_UpperArm", "Bip01_L_Forearm") + dist("Bip01_L_Forearm", "Bip01_L_Hand")
+hip_z = rest_world_head("Bip01_L_Thigh").z
+sh_off = rest_world_head("Bip01_L_UpperArm").z - hip_z
+LEG_EXT = 0.85
+s = (ankle + LEG_EXT * Lleg + sh_off - 0.5 * Larm) / 0.77
+base_z = s * 0.3 + ankle + LEG_EXT * Lleg - hip_z          # lift the rider so the hips sit at that stance height
+print("stick scale", round(s, 3), "base_z", round(base_z, 3), "Lleg", round(Lleg, 3), "Larm", round(Larm, 3), "H", round(H, 3))
 
 pogo = pogo_stick.build(); pogo.scale = (s, s, s)
 rider = bpy.data.objects.new("Rider", None); bpy.context.scene.collection.objects.link(rider); pogo.parent = rider
@@ -81,7 +92,7 @@ h_hop, crouch = 0.2 * H, 0.12 * H
 keys = [(1, 0, 0), (5, 0, -crouch), (9, 0, 0), (16, h_hop, 0), (21, 0.02, 0), (25, 0, 0)]    # (frame, stick lift, body drop)
 for f, rz, bz in keys:
     rider.location.z = rz; rider.keyframe_insert("location", index=2, frame=f)
-    arm.location.z = rz + bz; arm.keyframe_insert("location", index=2, frame=f)
+    arm.location.z = base_z + rz + bz; arm.keyframe_insert("location", index=2, frame=f)
     bpy.context.view_layer.update()
     for pre, sgn in (("L_", 1), ("R_", -1)):
         foot_t = rider.location + side * sgn * 0.13 * s + Vector((0, 0, 0.3 * s + ankle))
@@ -114,7 +125,7 @@ arm.animation_data_clear()
 for p in pb:
     p.rotation_quaternion, p.location = (1, 0, 0, 0), (0, 0, 0)
 for f, rz, bz in keys:
-    arm.location.z = rz + bz; arm.keyframe_insert("location", index=2, frame=f)
+    arm.location.z = base_z + rz + bz; arm.keyframe_insert("location", index=2, frame=f)
 bpy.context.view_layer.update()
 sc.frame_set(1)
 bpy.context.view_layer.objects.active = arm
