@@ -31,6 +31,8 @@ local PROFILES = {
     ["ImpracticalTransport.RollerSkates"] = {
         name = "Skates", worn = true, mount = false,
         speed = { [""] = 0.7, Run = 1.0 },
+        stopFall = { walk = 0.05, run = 0.25 },      -- chance that stopping ends in a fall (winded riders and bad ground make it likelier)
+        coast = { walk = 0.6, run = 1.2 },      -- seconds the rider keeps gliding after the keys are released (Bob_SkateCoast, about 0.8 tiles in 1.2 s)
         tier1 = 0.8, tier2 = 0.5,
         drain = 0.003, drainRun = 1.5, drainSprint = 1.5,
         stumble = 0.01, stumbleRun = 4.0, stumbleSprint = 4.0,
@@ -147,6 +149,8 @@ function ISUnequipAction:start()
 end
 local lastPace = {}
 local stallUntil = {}
+local coastUntil = {}
+local wasMoving = {}
 local TIER_SPEED = { ["0"] = 1.0, ["1"] = 0.6, ["2"] = 0.3 }      -- what the T1 and T2 clips scale the travel by
 local STUMBLE_COOLDOWN_SECONDS = 20
 local TRANSITION_SECONDS = 0.8     -- length of Bob_PogoMount / Bob_PogoDismount (24 frames at 30 fps)
@@ -230,11 +234,39 @@ Events.OnPlayerUpdate.Add(function(player)
     end
     if not active then
         if stallUntil[num] then stallUntil[num] = nil; player:setVariable(kind .. "Stall", false) end
+        if coastUntil[num] then coastUntil[num] = nil; player:setVariable(kind .. "Coast", false) end
+        wasMoving[num] = false
         return
     end
     if stallUntil[num] and getTimestampMs() > stallUntil[num] then
         stallUntil[num] = nil
         player:setVariable(profile.name .. "Stall", false)
+    end
+    -- stopping is not instant on skates: when the rider stops moving the coast clip carries them on for a moment
+    if profile.coast then
+        local moving = player:isPlayerMoving()
+        local nowMs = getTimestampMs()
+        if moving then
+            coastUntil[num] = nil
+            player:setVariable(profile.name .. "Coast", false)
+        elseif wasMoving[num] then
+            local running = player:isRunning()
+            local seconds = running and profile.coast.run or profile.coast.walk
+            local fallChance = profile.stopFall and (running and profile.stopFall.run or profile.stopFall.walk) or 0
+            fallChance = fallChance * (1 + (1 - player:getStats():get(CharacterStat.ENDURANCE))) * groundAt(player:getCurrentSquare()).stumble
+            if not ImpracticalTransport.calm and ZombRandFloat(0, 1) < fallChance then
+                print(string.format("ImpracticalTransport stop fall (chance %.2f)", fallChance))
+                ImpracticalTransport.stumble(player)
+            else
+                coastUntil[num] = nowMs + seconds * 1000
+                player:setVariable(profile.name .. "Coast", true)
+                print(string.format("ImpracticalTransport coast %.1fs", seconds))
+            end
+        elseif coastUntil[num] and nowMs > coastUntil[num] then
+            coastUntil[num] = nil
+            player:setVariable(profile.name .. "Coast", false)
+        end
+        wasMoving[num] = moving
     end
 
     local stats = player:getStats()

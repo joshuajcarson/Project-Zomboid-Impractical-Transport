@@ -20,7 +20,10 @@ Each item says how it could be done; none is built yet.
 11. **Items on the ground and corpses.** Rolling over loot piles, corpses or small objects trips the rider.
 Open design questions for later: how much faster than walking on streets (a small edge, say 1.2x walking, keeps the joke), whether there is any way to turn the skates "off" without taking them off.
 
-## Stopping is hard (user request)
+## Stopping is hard (user request): BUILT 2026-11-01 (plan A works)
+Result: idle-state clips DO move the player through their Translation_Data (skates glide an extra 0.4 to 0.9 tiles after the stop order; bare walking glides 0). The Lua sets `SkatesCoast` when movement stops, the idle `coast_skates` node plays `Bob_SkateCoast` (decaying travel keys, clipio takes a list of (frame, distance)), and stopping can end in a fall (`stopFall`: 5 percent walking, 25 percent running, scaled by tiredness and ground; 2 falls in 30 stops in the harness). The original plan is kept below.
+
+## Stopping plan (original)
 Goal: a rider moving at speed does not stop when the keys are released; they coast and slide, and stopping at speed often ends in a fall.
 - **Vehicle inspiration.** Vehicles keep their velocity because the engine integrates a velocity; the character controller has no inertia (the player stops the instant the input stops). We cannot add a velocity to the player directly, so the plan uses animation travel.
 - **Plan A (animation travel, cheapest).** When the rider goes from moving to not moving, the Lua sets `SkatesCoast` for a short time (about 0.8 s walking, 1.4 s running, shorter on rough ground). A `coast_skates` node in the idle state plays `Bob_SkateCoast`, a gliding pose whose `Translation_Data` carries the rider forward with decreasing speed. This needs clipio's `write_clip` to take a list of (frame, distance) keys instead of one linear travel, and an experiment to prove that an idle-state clip's deferred travel really moves the player (the mount clips use zero travel, so this is untested). Moving again ends the coast at once.

@@ -194,6 +194,10 @@ def stage_play(keep):
     print(f"skates {skate_speed:.2f} tiles/s ({skate_speed / base:.0%} of the faster walk)")
     skate_speed > 0.1 or fail("skater did not move")
     skate_speed < base * 0.97 or fail("skates are not slower than walking")
+    # stopping is not instant on skates: the coast node has to play after the move order stops
+    bot("smokenode", "700"); p0 = pos(); bot("goto", f"{p0['x'] + 12:.1f}", f"{p0['y']:.1f}"); time.sleep(5); bot("stop"); time.sleep(3)
+    log = sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding="utf-8", errors="replace")
+    "coast_skates/Bob_SkateCoast" in log or fail("the skates coast node never played after stopping (see NODE lines in the client log)")
     bot("smokeunwear", "RollerSkates"); time.sleep(5); bot("smokechat", "/removeitem ImpracticalTransport.RollerSkates 0"); time.sleep(2)
     bot("smokechat", f'/additem "{USER}" ImpracticalTransport.PogoStick'); time.sleep(4)
     bot("smokeequipaction", "PogoStick")   # leave it in hand for whoever plays next

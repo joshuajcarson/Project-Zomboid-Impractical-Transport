@@ -1,6 +1,6 @@
 """Writes survivor animation clips as text DirectX .X files the game loads (shared by the transport clip scripts).
   write_clip, blend = clipio.make(order, out_dir)      order = the skeleton's bone names, parents before children
-  write_clip(name, samples, nframes, travel)           samples = {frame: {bone: bone-local Matrix}}; travel = Translation_Data distance per clip
+  write_clip(name, samples, nframes, travel)           samples = {frame: {bone: bone-local Matrix}}; travel = Translation_Data distance per clip, or a list of (frame, distance) keys
 The clip carries the whole skeleton (a Frame tree), a one-triangle mesh naming every skinned bone, and keys for every bone: the game builds its
 skeleton from those (see tools/blender/pogo_hop.py history for why)."""
 import pathlib, sys
@@ -32,7 +32,9 @@ def make(order, out_dir):
       for n in order:
         if n == "Translation_Data":
             # forward travel along its local axis (same rotation key and direction as the game's Bob_Walk clip)
-            rot, trans = [(0, [-0.5, -0.5, 0.5, 0.5]), (end_tick, [-0.5, -0.5, 0.5, 0.5])], [(0, [0.0, 0.0, 0.0]), (end_tick, [0.0, 0.0, -travel])]
+            # travel: one distance (linear) or a list of (frame, distance) keys (a clip that speeds up or slows down)
+            keys = travel if isinstance(travel, (list, tuple)) else [(0, 0.0), (nframes, travel)]
+            rot, trans = [(0, [-0.5, -0.5, 0.5, 0.5]), (end_tick, [-0.5, -0.5, 0.5, 0.5])], [(tick(fr), [0.0, 0.0, -d]) for fr, d in keys]
         else:
             frames = sorted(samples)
             rot, trans = [], []

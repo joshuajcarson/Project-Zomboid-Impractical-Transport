@@ -124,6 +124,14 @@ for kind, frames in CYCLE.items():
 # at rest: feet side by side, knees bent, a slow sway so the rider never stands quite still
 write_clip("Bob_SkateIdle", {f: pose(0.0, stride=0.0, sway=0.012 * math.sin(2 * math.pi * f / 60)) for f in range(61)}, 60, 0)
 
+# coast: after the keys are released the rider keeps gliding and slows down (the Lua plays this from the idle state for about a second). One foot ahead,
+# knees bent, arms out a little for balance; the travel eases out so the rider slows like a skater, not like a car.
+COAST_FRAMES = 36
+COAST_TILES = 0.8
+coast_pose = pose(0.5, stride=0.6)
+coast_travel = [(f, COAST_TILES / TILES_PER_TRAVEL_SECOND * (1 - (1 - f / COAST_FRAMES) ** 2)) for f in range(0, COAST_FRAMES + 1, 3)]
+write_clip("Bob_SkateCoast", {0: coast_pose, COAST_FRAMES: coast_pose}, COAST_FRAMES, coast_travel)
+
 # --- preview: the stride read back with the game-format reader, side and front views
 bpy.ops.wm.read_factory_settings(use_empty=True)
 arm, meshes, rl, _ = zx.import_body(GAME / "models_X/Skinned/MaleBody.x")
