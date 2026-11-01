@@ -17,4 +17,14 @@
 		<m_Type>BOOL</m_Type>
 		<m_Value>true</m_Value>
 	</m_Conditions>
+	<m_Conditions>
+		<m_Name>SkatesCoastGait</m_Name>
+		<m_Type>STRING</m_Type>
+		<m_StringValue>walk</m_StringValue>
+	</m_Conditions>
+	<m_Conditions>
+		<m_Name>SkatesTier</m_Name>
+		<m_Type>STRING</m_Type>
+		<m_StringValue>0</m_StringValue>
+	</m_Conditions>
 </animNode>

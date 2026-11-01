@@ -15,7 +15,7 @@ MEDIA = ROOT / "Contents/mods/ImpracticalTransport/42/media"
 XFILE = MEDIA / "models_X/ImpracticalTransport/RollerSkates.X"
 TEXTURE = MEDIA / "textures/ImpracticalTransport/RollerSkates_texture.png"
 ICON = MEDIA / "textures/Item_RollerSkates.png"
-RAISE = 0.034                                   # how far the wheels hang below the sole (mesh units): the clips lift the rider by this much
+RAISE = 0.048                                   # how far the wheels hang below the sole (mesh units): the clips lift the rider by this much
 COLOURS = [(0.80, 0.10, 0.12), (0.18, 0.18, 0.22), (0.95, 0.80, 0.10), (0.92, 0.92, 0.92), (0.05, 0.05, 0.05)]   # boot, plate, wheel, lace and toe, tyre
 
 root = zx.parse_x(GAME / "models_X/Skinned/MaleBody.x")
@@ -52,12 +52,14 @@ def skate(box_):
     cx = (x0 + x1) / 2
     tris = []
     pad = 0.008
-    tris += box((x0 - pad, y0 + 0.004, z0 - pad), (x1 + pad, y1 + 0.016, z1 + pad), 0)                 # boot shell around the shoe
-    tris += box((x0 - pad, y0 + 0.004, z1 - 0.014), (x1 + pad, y0 + 0.030, z1 + pad + 0.004), 3)       # toe cap
-    tris += box((cx - 0.030, y0 - RAISE * 0.45, z0 - 0.002), (cx + 0.030, y0 + 0.004, z1 + 0.004), 1)  # plate under the sole
-    for z in (z0 + 0.030, z1 - 0.022):                                                                  # two axles, two wheels each (quad skates)
-        for dx in (-0.019, 0.019):
-            tris += wheel(cx + dx, y0 - RAISE * 0.45 + 0.002, z, RAISE * 0.55, 0.014, 2)
+    tris += box((x0 - pad, y0 + 0.002, z0 - pad), (x1 + pad, y0 + 0.020, z1 + pad), 0)                 # low boot sole under the shoe (the shoe itself stays visible)
+    tris += box((x0 - pad, y0 + 0.002, z1 - 0.020), (x1 + pad, y0 + 0.030, z1 + pad + 0.006), 3)       # white toe stop
+    tris += box((x0 - pad, y0 + 0.014, z0 - pad), (x0 - pad + 0.006, y0 + 0.046, z1 - 0.030), 0)       # low side cuffs hugging the ankle
+    tris += box((x1 + pad - 0.006, y0 + 0.014, z0 - pad), (x1 + pad, y0 + 0.046, z1 - 0.030), 0)
+    tris += box((cx - 0.030, y0 - 0.010, z0 - 0.002), (cx + 0.030, y0 + 0.004, z1 + 0.004), 1)          # dark plate under the sole
+    for z in (z0 + 0.026, z1 - 0.020):                                                                  # two axles, two wheels each (quad skates)
+        for dx in (-0.024, 0.024):
+            tris += wheel(cx + dx, y0 - 0.010 - RAISE * 0.5 + 0.004, z, RAISE * 0.5, 0.018, 2)             # big yellow wheels so they read from the game camera
     return tris
 
 meshes_out = {}

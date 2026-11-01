@@ -78,7 +78,7 @@ def limb(root, mid, end, target_world, pole_world, foot, Rm=None):
 # --- the skating pose
 STRIDE = 0.22 * s         # how far a foot slides forward and back of the hips
 CROUCH = 0.06 * s         # the hips drop with bent knees
-RAISE = 0.034             # the wheels hang this far below the sole (tools/blender/skates_model.py): the whole rider is lifted by it
+RAISE = 0.048             # the wheels hang this far below the sole (tools/blender/skates_model.py): the whole rider is lifted by it
 ARM = 0.16 * s            # arm swing, opposite to the legs
 Rlean = Matrix.Rotation(LEAN, 3, up.cross(fwd))   # a positive turn tips the top forward
 Rlean_m = Mi.to_3x3() @ Rlean @ arm.matrix_world.to_3x3()
@@ -125,13 +125,17 @@ for kind, frames in CYCLE.items():
 # at rest: feet side by side, knees bent, a slow sway so the rider never stands quite still
 write_clip("Bob_SkateIdle", {f: pose(0.0, stride=0.0, sway=0.012 * math.sin(2 * math.pi * f / 60)) for f in range(61)}, 60, 0)
 
-# coast: after the keys are released the rider keeps gliding and slows down (the Lua plays this from the idle state for about a second). One foot ahead,
-# knees bent, arms out a little for balance; the travel eases out so the rider slows like a skater, not like a car.
-COAST_FRAMES = 36
-COAST_TILES = 0.8
+# coast: after the keys are released the rider keeps gliding and slows to a stop. The glide STARTS at the speed the rider was going (the same speed as the
+# stride clip of that gait and tier: walk, run, and the slower tiers for rough ground or tiredness) and eases out linearly to zero over the clip, so the last
+# stretch is never faster than the skating pace. The Lua plays the clip for exactly its length (profile.coast in ImpracticalTransport.lua).
+COAST_SECONDS = {"": 0.6, "Run": 1.2}
 coast_pose = pose(0.5, stride=0.6)
-coast_travel = [(f, COAST_TILES / TILES_PER_TRAVEL_SECOND * (1 - (1 - f / COAST_FRAMES) ** 2)) for f in range(0, COAST_FRAMES + 1, 3)]
-write_clip("Bob_SkateCoast", {0: coast_pose, COAST_FRAMES: coast_pose}, COAST_FRAMES, coast_travel)
+for kind, seconds in COAST_SECONDS.items():
+    frames = int(seconds * FPS)
+    for tier, tf in TIERS.items():
+        v0 = SPEED[kind] * tf / TILES_PER_TRAVEL_SECOND          # travel units per second at the start
+        travel = [(f, v0 * (f / FPS - (f / FPS) ** 2 / (2 * seconds))) for f in range(0, frames + 1, 2)]
+        write_clip(f"Bob_SkateCoast{kind}{tier}", {0: coast_pose, frames: coast_pose}, frames, travel)
 
 # --- preview: the stride read back with the game-format reader, side and front views
 bpy.ops.wm.read_factory_settings(use_empty=True)

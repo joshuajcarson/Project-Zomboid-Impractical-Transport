@@ -32,7 +32,7 @@ local PROFILES = {
         name = "Skates", worn = true, mount = false,
         speed = { [""] = 0.7, Run = 1.0 },
         stopFall = { walk = 0.05, run = 0.25 },      -- chance that stopping ends in a fall (winded riders and bad ground make it likelier)
-        coast = { walk = 0.6, run = 1.2 },      -- seconds the rider keeps gliding after the keys are released (Bob_SkateCoast, about 0.8 tiles in 1.2 s)
+        coast = { walk = 0.6, run = 1.2 },      -- seconds the rider keeps gliding after the keys are released: the length of Bob_SkateCoast / Bob_SkateCoastRun (tools/blender/skates_glide.py), which start at the skating speed and ease to zero
         tier1 = 0.8, tier2 = 0.5,
         drain = 0.003, drainRun = 1.5, drainSprint = 1.5,
         stumble = 0.01, stumbleRun = 4.0, stumbleSprint = 4.0,
@@ -153,6 +153,7 @@ end
 local lastPace = {}
 local stallUntil = {}
 local coastUntil = {}
+local coastFrom = {}
 local wasMoving = {}
 local TIER_SPEED = { ["0"] = 1.0, ["1"] = 0.6, ["2"] = 0.3 }      -- what the T1 and T2 clips scale the travel by
 local STUMBLE_COOLDOWN_SECONDS = 20
@@ -262,10 +263,14 @@ Events.OnPlayerUpdate.Add(function(player)
                 ImpracticalTransport.stumble(player)
             else
                 coastUntil[num] = nowMs + seconds * 1000
+                player:setVariable(profile.name .. "CoastGait", running and "Run" or "walk")
                 player:setVariable(profile.name .. "Coast", true)
+                coastFrom[num] = { x = player:getX(), y = player:getY(), tier = tostring(player:getVariableString(profile.name .. "Tier")), gait = running and "run" or "walk" }
                 print(string.format("ImpracticalTransport coast %.1fs", seconds))
             end
         elseif coastUntil[num] and nowMs > coastUntil[num] then
+            local from = coastFrom[num]
+            if from then print(string.format("ImpracticalTransport coast distance %.2f tiles (gait %s tier %s)", math.sqrt((player:getX() - from.x) ^ 2 + (player:getY() - from.y) ^ 2), from.gait, from.tier)) end
             coastUntil[num] = nil
             player:setVariable(profile.name .. "Coast", false)
         end
