@@ -186,6 +186,15 @@ def stage_play(keep):
         bot("smokeunequipaction"); time.sleep(6)
         carried = full
     bot("smokechat", f"/removeitem {carried} 0"); time.sleep(2)
+    # roller skates are worn: wear them (a real wear action), measure, take them off
+    bot("smokechat", f'/additem "{USER}" ImpracticalTransport.RollerSkates'); time.sleep(4)
+    bot("smokewear", "RollerSkates"); time.sleep(6)
+    bot("smokecalm", "1"); skate_speed = speed(12)
+    expected_speed("skates", skate_speed)
+    print(f"skates {skate_speed:.2f} tiles/s ({skate_speed / base:.0%} of the faster walk)")
+    skate_speed > 0.1 or fail("skater did not move")
+    skate_speed < base * 0.97 or fail("skates are not slower than walking")
+    bot("smokeunwear", "RollerSkates"); time.sleep(5); bot("smokechat", "/removeitem ImpracticalTransport.RollerSkates 0"); time.sleep(2)
     bot("smokechat", f'/additem "{USER}" ImpracticalTransport.PogoStick'); time.sleep(4)
     bot("smokeequipaction", "PogoStick")   # leave it in hand for whoever plays next
     print("play ready: god mode on, dressed, pogo stick equipped")

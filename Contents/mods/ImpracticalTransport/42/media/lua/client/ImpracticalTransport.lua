@@ -30,7 +30,7 @@ local PROFILES = {
     -- roller skates are WORN (shoes slot), not held: no aiming block, no mount clips; speed and falls like the others
     ["ImpracticalTransport.RollerSkates"] = {
         name = "Skates", worn = true, mount = false,
-        speed = { [""] = 0.6, Run = 0.9 },
+        speed = { [""] = 0.7, Run = 1.0 },
         tier1 = 0.8, tier2 = 0.5,
         drain = 0.003, drainRun = 1.5, drainSprint = 1.5,
         stumble = 0.01, stumbleRun = 4.0, stumbleSprint = 4.0,

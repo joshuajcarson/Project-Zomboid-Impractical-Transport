@@ -321,6 +321,14 @@ commands.smokeworn = function(p, a)
     return true, "logged"
 end
 
+-- smokeunwear|Type: take a worn clothing item off like a player (a real unequip action)
+commands.smokeunwear = function(p, a)
+    local item = p:getInventory():getFirstTypeRecurse((a and a.a) or "")
+    if not item then return false, "not in inventory" end
+    ISTimedActionQueue.add(ISUnequipAction:new(p, item, 50))
+    return true, "queued"
+end
+
 -- smokecalm|1/0: no random slips or stumbles (speed measurements); forced ones (smokeslip, smokestumble) still happen
 commands.smokecalm = function(p, a)
     ImpracticalTransport.calm = (a and a.a) ~= "0"
