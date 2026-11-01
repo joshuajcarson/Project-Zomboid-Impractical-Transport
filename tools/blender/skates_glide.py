@@ -78,6 +78,7 @@ def limb(root, mid, end, target_world, pole_world, foot, Rm=None):
 # --- the skating pose
 STRIDE = 0.22 * s         # how far a foot slides forward and back of the hips
 CROUCH = 0.06 * s         # the hips drop with bent knees
+RAISE = 0.034             # the wheels hang this far below the sole (tools/blender/skates_model.py): the whole rider is lifted by it
 ARM = 0.16 * s            # arm swing, opposite to the legs
 Rlean = Matrix.Rotation(LEAN, 3, up.cross(fwd))   # a positive turn tips the top forward
 Rlean_m = Mi.to_3x3() @ Rlean @ arm.matrix_world.to_3x3()
@@ -86,14 +87,14 @@ def pose(phase, stride=1.0, sway=0.0):
     """phase: stride angle in turns (0..1): the left foot is farthest back at 0 and the right foot is half a turn behind it. stride 0 = standing still."""
     for p in pb: p.matrix_basis = Matrix.Identity(4)
     bpy.context.view_layer.update()
-    pelvis = arm.matrix_world @ rest["Bip01"].translation + up * (-CROUCH) + fwd * (0.03 * s) + side * (sway * s)
+    pelvis = arm.matrix_world @ rest["Bip01"].translation + up * (RAISE - CROUCH) + fwd * (0.03 * s) + side * (sway * s)
     pb["Bip01"].matrix = Matrix.Translation(Mi @ pelvis) @ (Rlean_m @ rest["Bip01"].to_3x3()).to_4x4()
     bpy.context.view_layer.update()
     for pre, sgn in (("L_", 1), ("R_", -1)):         # sgn: +1 = rider's left (side), -1 = right
         ph = 2 * math.pi * (phase + (0.0 if sgn > 0 else 0.5))
         c = -math.cos(ph)                            # -1 .. 1: back to forward
         push = max(0.0, math.sin(ph))                # the foot is pushing out and back during half the turn
-        foot_t = fwd * (STRIDE * stride * c) + side * sgn * (0.09 + 0.07 * push * stride) * s + up * (ankle + 0.035 * s * max(0.0, -math.sin(ph)) * stride)
+        foot_t = fwd * (STRIDE * stride * c) + side * sgn * (0.09 + 0.07 * push * stride) * s + up * (ankle + RAISE + 0.035 * s * max(0.0, -math.sin(ph)) * stride)
         limb(f"Bip01_{pre}Thigh", f"Bip01_{pre}Calf", f"Bip01_{pre}Foot", foot_t, Rlean @ (fwd * 1.0 + up * 0.7 + side * sgn * 0.25), True, Rlean_m)
         shoulder = arm.matrix_world @ pb[f"Bip01_{pre}UpperArm"].matrix.translation
         swing = -c * ARM * stride                    # the arm opposite the forward foot swings forward
