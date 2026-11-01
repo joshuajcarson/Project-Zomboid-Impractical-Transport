@@ -11,12 +11,14 @@ MOD_ID = "ImpracticalTransport"
 RL = pathlib.Path(os.environ.get("PZ_RL_REPO", r"C:\bench\project-zomboid-rl-based-players"))
 ARENA = (5385, 10114)   # the RL harness's bare dirt field (5377,10114; its west corner has traffic cones, so start 8 tiles east); the old arena at 10770,9410 sits beside a house, shed and playground, and 4010,11767 is a crop field that hides the rider; the character otherwise resumes wherever it was left
 USER = "Smoke1"   # fresh account: a dead character from an earlier run would otherwise be reused
-ITEMS = ["ImpracticalTransport.PogoStick", "ImpracticalTransport.Tricycle"]
+ITEMS = ["ImpracticalTransport.PogoStick", "ImpracticalTransport.Tricycle", "ImpracticalTransport.Unicycle", "ImpracticalTransport.RollerSkates"]
 # throw-away rotate calibration set, only present while tools/make_calibration.py has generated it
 CAL = MOD / "42/media/scripts/ImpracticalTransport_calibration_items.txt"
 ITEMS += [f"ImpracticalTransport.{n}" for n in re.findall(r"item (PogoCal\d+)", CAL.read_text(encoding="utf-8") if CAL.exists() else "")]
 TRIKE_CAL = MOD / "42/media/scripts/ImpracticalTransport_trike_cal_items.txt"      # throw-away, see tools/make_trike_calibration.py
 ITEMS += [f"ImpracticalTransport.{n}" for n in re.findall(r"item (TrikeCal\d+)", TRIKE_CAL.read_text(encoding="utf-8") if TRIKE_CAL.exists() else "")]
+TILT_CAL = MOD / "42/media/scripts/ImpracticalTransport_tilt_cal_items.txt"      # throw-away, see tools/make_tilt_calibration.py
+ITEMS += [f"ImpracticalTransport.{n}" for n in re.findall(r"item (UniCal\d+)", TILT_CAL.read_text(encoding="utf-8") if TILT_CAL.exists() else "")]
 VEHICLES = []   # the tricycle vehicle script is parked while the transports move to held items
 ERR = re.compile(r"ERROR|Exception|WARN.*(script|model|texture)", re.I)
 
@@ -33,6 +35,7 @@ def static():
             any((media / "models_X" / f"{mesh}{ext}").exists() for ext in (".X", ".x", ".fbx")) or fail(f"{s.name}: missing models_X/{mesh}")
         for tex in re.findall(rf"texture\s*=\s*(\S*{MOD_ID}\S*?)\s*,", text):
             (media / "textures" / f"{tex}.png").exists() or fail(f"{s.name}: missing textures/{tex}.png")
+    subprocess.run([sys.executable, str(HERE / "scripts" / "check_repo.py")]).returncode and fail("scripts/check_repo.py failed (see above)")      # the same checks CI runs
     print("static ok")
 
 def stage_server():
@@ -50,14 +53,18 @@ def stage_server():
     ini.write_text(re.sub(r"(?m)^Mods=.*$", f"Mods=RLBridge;{MOD_ID}", ini.read_text(encoding="utf-8")), encoding="utf-8")
     LOGS.mkdir(exist_ok=True)
     log = LOGS / f"smoke-server-{time.strftime('%Y%m%d-%H%M%S')}.log"
+    sandbox = RL / ".pzdata" / "Server" / "rl_SandboxVars.lua"      # DayLength 27 = real time, so noon stays noon for the whole run
+    original = sandbox.read_text(encoding="utf-8")
+    sandbox.write_text(re.sub(r"(?m)^(\s*DayLength = )\d+", r"\g<1>27", original), encoding="utf-8")
     _ps(["-File", str(RL / "scripts" / "start-server.ps1"), "-JavaAgent", str(RL / "agent" / "rl-agent.jar"),
          "-ChannelPort", "17600", "-Dev"], stdout=open(log, "wb"), stderr=subprocess.STDOUT)
     deadline = time.time() + 900
-    while time.time() < deadline:
+    while time.time() < deadline:      # the RL repo's own runs want their usual day length back as soon as the server has read the file
         text = log.read_bytes().replace(b"\x00", b"").decode("utf-8", "replace")
         if "*** SERVER STARTED" in text: break
         time.sleep(5)
-    else: fail(f"server did not start, see {log}")
+    else: sandbox.write_text(original, encoding="utf-8"); fail(f"server did not start, see {log}")
+    sandbox.write_text(original, encoding="utf-8")
     bad = [l for l in text.splitlines() if MOD_ID.lower() in l.lower() and ERR.search(l)] or \
           [l for l in text.splitlines() if re.search(r"Tricycle|PogoStick", l) and ERR.search(l)]
     re.search(r"required mod .* not found", text) and fail(f"server could not find a mod in its list, see {log}")
@@ -117,6 +124,23 @@ def stage_play(keep):
         p1 = pos(); v = math.hypot(p1["x"] - p0["x"], p1["y"] - p0["y"]) / (time.time() - t0)
         bot("stop"); time.sleep(1)      # a walk still in progress sits ahead of any later equip/unequip action in the timed-action queue
         return v
+    for it in ITEMS[1:]:      # every extra item is weight that slows the pogo measurements (ITEMS[0] is the one under test); they only had to load and add
+        bot("smokeunequipaction"); time.sleep(4); bot("smokechat", f"/removeitem {it} 0"); time.sleep(2)
+    # fixed conditions: needs met, noon, no corpses, clear sky, carrying only what is expected; fails when any of it is off
+    ch.command(f"heal|{USER}"); ch.command("settime|12"); ch.command(f"corpses|{me['x']:.0f}|{me['y']:.0f}|25|1")
+    bot("smokechat", "/stopweather"); time.sleep(3)      # the tester is an admin by now; weather is the server's, a client override is not enough
+    bot("smokereset"); time.sleep(5); bot("smokecheck"); time.sleep(3)
+    checks = re.findall(r"SMOKECHECK (.*)", sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding="utf-8", errors="replace"))
+    print("conditions:", checks[-1] if checks else "no SMOKECHECK line")
+    checks or fail("smokecheck never reported (see client log)")
+    "PROBLEMS" in checks[-1] and fail("test conditions are not ideal: " + checks[-1])
+    def expected_speed(name, measured):
+        """The mod logs the speed it expects once a second ("pace ... expected=x"); the measured one has to be within 30% of the latest."""
+        lines = re.findall(r"ImpracticalTransport pace .*expected=(-?\d+\.\d+)", sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding="utf-8", errors="replace"))
+        lines or fail(f"{name}: no pace line in the client log")
+        want = float(lines[-1]); print(f"{name}: measured {measured:.2f} tiles/s, mod expected {want:.2f}")
+        want > 0 and abs(measured - want) > 0.3 * want and fail(f"{name} moves at {measured:.2f} tiles/s but the mod expects {want:.2f}")
+    bot("smokecalm", "1")      # random slips and falls would spoil the speed readings
     bot("smokeunequipaction"); time.sleep(4)
     walk = speed(12)
     bot("smokenode", "900")      # logs which anim nodes play, to see that the mount clip is chosen
@@ -125,7 +149,8 @@ def stage_play(keep):
     "ImpracticalTransport riding=true" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("riding flag never set (see client log)")
     "mount_pogo/Bob_PogoMount" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("the mount anim node never played (see NODE lines in the client log)")
     pogo = speed(-12)
-    bot("smokestumble"); time.sleep(8)      # the fall animation has to finish before the unequip below is queued
+    expected_speed("pogo", pogo)
+    bot("smokecalm", "0"); bot("smokestumble"); time.sleep(8)      # the fall animation has to finish before the unequip below is queued
     "ImpracticalTransport stumble" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("forced stumble never ran (see client log)")
     log = logs[-1].read_text(encoding="utf-8", errors="replace")
     errors = [l for l in log.splitlines() if "(MOD:Impractical Transport)" in l and "ERROR" in l] + re.findall(r"ImpracticalTransport \w+ disabled: .*", log)
@@ -140,6 +165,42 @@ def stage_play(keep):
     base = max(walk, walk2)
     print(f"bare-hand walks {walk:.2f} and {walk2:.2f}, pogo {pogo:.2f} tiles/s ({pogo / base:.0%} of the faster walk)")
     pogo < base * 0.97 or fail("pogo is not slower than walking")   # walks on this field vary 0.9 to 1.5 tiles/s with the pathing; the pogo is steady at ~0.85
+    # the other transports, one item at a time in the pack so the weight stays comparable
+    carried = "ImpracticalTransport.PogoStick"
+    for item, slip_node, mount_node in (("Tricycle", "slip_trike/Bob_TrikeSlip", "mount_trike/Bob_TrikeMount"), ("Unicycle", "slip_uni/Bob_UniSlip", "mount_uni/Bob_UniMount")):
+        full, label = f"ImpracticalTransport.{item}", item.lower()
+        bot("smokechat", f"/removeitem {carried} 0"); time.sleep(2)
+        bot("smokechat", f'/additem "{USER}" {full}'); time.sleep(4)
+        bot("smokenode", "900")
+        bot("smokeequipaction", item); time.sleep(5)
+        mount_log = sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding="utf-8", errors="replace")
+        mount_node in mount_log or fail(f"the {item} mount node never played (see NODE lines in the client log)")
+        bot("smokecalm", "1"); item_speed = speed(12)
+        expected_speed(label, item_speed)
+        print(f"{label} {item_speed:.2f} tiles/s ({item_speed / base:.0%} of the faster walk)")
+        item_speed > 0.1 or fail(f"{label} rider did not move")
+        item_speed < base * 0.97 or fail(f"{label} is not slower than walking")
+        bot("smokenode", "600"); p0 = pos(); bot("goto", f"{p0['x'] + 12:.1f}", f"{p0['y']:.1f}"); time.sleep(3)
+        bot("smokeslip"); time.sleep(4); time.sleep(1); bot("stop"); time.sleep(1)
+        log = sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding="utf-8", errors="replace")
+        slip_node in log or fail(f"the {label} slip node never played (see NODE lines in the client log)")
+        bot("smokeunequipaction"); time.sleep(6)
+        carried = full
+    bot("smokechat", f"/removeitem {carried} 0"); time.sleep(2)
+    # roller skates are worn: wear them (a real wear action), measure, take them off
+    bot("smokechat", f'/additem "{USER}" ImpracticalTransport.RollerSkates'); time.sleep(4)
+    bot("smokewear", "RollerSkates"); time.sleep(6)
+    bot("smokecalm", "1"); skate_speed = speed(12)
+    expected_speed("skates", skate_speed)
+    print(f"skates {skate_speed:.2f} tiles/s ({skate_speed / base:.0%} of the faster walk)")
+    skate_speed > 0.1 or fail("skater did not move")
+    skate_speed < base * 0.97 or fail("skates are not slower than walking")
+    # stopping is not instant on skates: the coast node has to play after the move order stops
+    bot("smokenode", "700"); p0 = pos(); bot("goto", f"{p0['x'] + 12:.1f}", f"{p0['y']:.1f}"); time.sleep(5); bot("stop"); time.sleep(3)
+    log = sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding="utf-8", errors="replace")
+    "coast_skates/Bob_SkateCoast" in log or fail("the skates coast node never played after stopping (see NODE lines in the client log)")
+    bot("smokeunwear", "RollerSkates"); time.sleep(5); bot("smokechat", "/removeitem ImpracticalTransport.RollerSkates 0"); time.sleep(2)
+    bot("smokechat", f'/additem "{USER}" ImpracticalTransport.PogoStick'); time.sleep(4)
     bot("smokeequipaction", "PogoStick")   # leave it in hand for whoever plays next
     print("play ready: god mode on, dressed, pogo stick equipped")
     keep or ch.close()

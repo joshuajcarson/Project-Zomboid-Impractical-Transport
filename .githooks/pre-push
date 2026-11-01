@@ -1,0 +1,3 @@
+#!/bin/sh
+# Runs the same cheap checks as CI before anything is pushed (enable once per clone: git config core.hooksPath .githooks)
+python scripts/smoke_test.py static && python scripts/check_repo.py || { echo "pre-push: checks failed, push cancelled"; exit 1; }

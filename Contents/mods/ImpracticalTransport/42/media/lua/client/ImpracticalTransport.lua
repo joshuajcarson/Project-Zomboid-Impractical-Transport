@@ -5,28 +5,52 @@ ImpracticalTransport = ImpracticalTransport or {}
 
 -- speed lives in the clips (tools/blender/pogo_hop.py: DISTANCE, GAITS, TIERS), not here
 -- tier1, tier2: pace (tiredness x terrain x engine slowdown) under which the slower hop clips play; dirt and grass stay at full pace
+-- speed: tiles per second at full pace (tier 0) by gait, measured from the clips; only used for the expectation printed in the pace log
 -- drain: endurance lost per second while moving, times drainRun / drainSprint when running or sprinting
 -- stumble: chance per second of tripping while fresh (about one fall every 80 s of hopping; winded riders trip up to 5x as often),
 --   times stumbleRun / stumbleSprint: faster hopping falls much more than it speeds up
 local PROFILES = {
     ["ImpracticalTransport.PogoStick"] = {
         name = "Pogo", mount = true,
+        speed = { [""] = 0.86, Run = 1.6 },
         tier1 = 0.8, tier2 = 0.5,
         drain = 0.0035, drainRun = 1.6, drainSprint = 2.5,
         stumble = 0.0125, stumbleRun = 3.0, stumbleSprint = 6.0,
     },
     -- a child's tricycle under a grown rider: slow and tiring, but it rarely throws the rider
     ["ImpracticalTransport.Tricycle"] = {
-        name = "Trike", mount = false,
+        name = "Trike", mount = true, transitionSeconds = 1.1,
+        dismount = { time = 105 },      -- see the unicycle
+        speed = { [""] = 0.58, Run = 0.78 },
+        slip = 0.03, slipRun = 2.0, slipSeconds = { 1.0, 2.0 }, slipFall = 0.25,      -- pedal slip: chance per second, run multiplier, how long it lasts; slipFall: share of slips that tip over backwards
         tier1 = 0.8, tier2 = 0.5,
         drain = 0.003, drainRun = 1.5, drainSprint = 1.5,
-        stumble = 0.004, stumbleRun = 3.0, stumbleSprint = 3.0,
+        stumble = 0.0015, stumbleRun = 3.0, stumbleSprint = 3.0,      -- falling back off the seat is rare; slipping is the common failure
+    },
+    -- roller skates are WORN (shoes slot), not held: no aiming block, no mount clips; speed and falls like the others
+    ["ImpracticalTransport.RollerSkates"] = {
+        name = "Skates", worn = true, mount = false,
+        speed = { [""] = 0.7, Run = 1.0 },
+        stopFall = { walk = 0.05, run = 0.25 },      -- chance that stopping ends in a fall (winded riders and bad ground make it likelier)
+        coast = { walk = 0.6, run = 1.2 },      -- seconds the rider keeps gliding after the keys are released (Bob_SkateCoast, about 0.8 tiles in 1.2 s)
+        tier1 = 0.8, tier2 = 0.5,
+        drain = 0.003, drainRun = 1.5, drainSprint = 1.5,
+        stumble = 0.01, stumbleRun = 4.0, stumbleSprint = 4.0,
+    },
+    -- a unicycle: balance is the whole job, so it wobbles often and falls more than the tricycle
+    ["ImpracticalTransport.Unicycle"] = {
+        name = "Uni", mount = true, transitionSeconds = 1.1,
+        dismount = { time = 105 },      -- the unequip action lasts this long (maxTime units: 40 measured as about 0.5 s, the clip is 1.1 s) while the dismount node plays Bob_UniDismount, instead of the vanilla pick-up      -- Bob_UniMount / Bob_UniDismount are 32 frames
+        speed = { [""] = 0.46, Run = 0.62 },
+        slip = 0.10, slipRun = 2.5, slipSeconds = { 0.8, 1.4 },      -- a wobble every ~10 s that usually recovers
+        tier1 = 0.8, tier2 = 0.5,
+        drain = 0.004, drainRun = 1.6, drainSprint = 1.6,
+        stumble = 0.02, stumbleRun = 4.0, stumbleSprint = 4.0,      -- and a real fall about every 50 s
     },
 }
 
 -- throw-away calibration variants (tools/make_calibration.py): same behaviour as the real stick
 for i = 1, 7 do PROFILES["ImpracticalTransport.PogoCal" .. i] = PROFILES["ImpracticalTransport.PogoStick"] end
-for i = 1, 4 do PROFILES["ImpracticalTransport.TrikeCal" .. i] = PROFILES["ImpracticalTransport.Tricycle"] end
 
 -- Ground under the rider, first match wins (lower-cased FloorMaterial property plus floor sprite name). Every number is a multiplier on top
 -- of the profile and of whatever vanilla already slows walking by: speed scales the hop, stumble scales the trip chance (endurance drain
@@ -72,6 +96,8 @@ local function groundAt(square)
     return NEUTRAL
 end
 
+ImpracticalTransport.groundAt = groundAt      -- the test bot scans the world with it (smokescan)
+
 local function bushNear(player)
     return guarded("bush", function()
         local square = player:getCurrentSquare()
@@ -97,6 +123,35 @@ local transitionUntil = {}
 local lastKind = {}      -- the Name of the last transport held, so its Active variable can be cleared after the item is gone
 local stumbleAfter = {}
 local lastReport = {}
+
+-- Putting a transport away: vanilla plays its pick-up-and-toss animation with the whole item in hand. For profiles with a `dismount` the unequip action
+-- sets no action animation at all (an unknown action node falls back to the engine's surrender emote); the transport's own dismount node (idle state, driven
+-- by <Name>Transition) plays instead: the rider steps off and the item stays where it was. The item is taken away when the action ends after `time`.
+require "TimedActions/ISUnequipAction"
+local vanillaUnequipNew = ISUnequipAction.new
+function ISUnequipAction:new(character, item, maxTimeInit, reason)
+    local o = vanillaUnequipNew(self, character, item, maxTimeInit, reason)
+    local profile = item and PROFILES[item:getFullType()]
+    if profile and profile.dismount and reason ~= "drop" and reason ~= "place" and not o.fromHotbar then
+        o.maxTime = profile.dismount.time
+        o.ipDismount = true
+    end
+    return o
+end
+local vanillaUnequipStart = ISUnequipAction.start
+function ISUnequipAction:start()
+    if self.ipDismount then
+        self.item:setJobType(getText("ContextMenu_Unequip") .. " " .. self.item:getName())
+        self.item:setJobDelta(0.0)
+        return
+    end
+    vanillaUnequipStart(self)
+end
+local lastPace = {}
+local stallUntil = {}
+local coastUntil = {}
+local wasMoving = {}
+local TIER_SPEED = { ["0"] = 1.0, ["1"] = 0.6, ["2"] = 0.3 }      -- what the T1 and T2 clips scale the travel by
 local STUMBLE_COOLDOWN_SECONDS = 20
 local TRANSITION_SECONDS = 0.8     -- length of Bob_PogoMount / Bob_PogoDismount (24 frames at 30 fps)
 
@@ -121,16 +176,39 @@ function ImpracticalTransport.stumble(player)
     print("ImpracticalTransport stumble")
 end
 
+-- The pedals lose their grip: the feet spin for a second or two (Bob_TrikeSlip, no travel) and the trike stands still, then it goes on.
+function ImpracticalTransport.slip(player, profile)
+    local seconds = ZombRandFloat(profile.slipSeconds[1], profile.slipSeconds[2])
+    stallUntil[player:getPlayerNum()] = getTimestampMs() + seconds * 1000
+    player:setVariable(profile.name .. "Stall", true)
+    print(string.format("ImpracticalTransport slip %.1fs", seconds))
+    -- a slip sometimes ends in a fall: likelier when running or winded
+    if profile.slipFall and not ImpracticalTransport.calm then
+        local endurance = player:getStats():get(CharacterStat.ENDURANCE)
+        if ZombRandFloat(0, 1) < profile.slipFall * (player:isRunning() and 1.5 or 1) * (1 + (1 - endurance)) then ImpracticalTransport.stumble(player) end
+    end
+end
+
 function ImpracticalTransport.getProfile(player)
     local item = player:getPrimaryHandItem()
-    return item and PROFILES[item:getFullType()] or nil
+    local held = item and PROFILES[item:getFullType()]
+    if held then return held end
+    return guarded("worn", function()
+        local worn = player:getWornItems()
+        for i = 0, worn:size() - 1 do
+            local wornItem = worn:get(i):getItem()
+            local profile = wornItem and PROFILES[wornItem:getFullType()]
+            if profile and profile.worn then return profile end
+        end
+        return nil
+    end, nil)
 end
 
 Events.OnPlayerUpdate.Add(function(player)
     local profile = ImpracticalTransport.getProfile(player)
     local num = player:getPlayerNum()
     -- a pogo stick is not a weapon: no aiming, no swinging while it is in hand (the weapon poses would hold it at odd angles)
-    local isHeld = profile ~= nil
+    local isHeld = profile ~= nil and not profile.worn      -- a worn transport (skates) leaves aiming and swinging alone
     if isHeld ~= (held[num] or false) then
         held[num] = isHeld
         player:setIgnoreAimingInput(isHeld)
@@ -138,7 +216,7 @@ Events.OnPlayerUpdate.Add(function(player)
     end
     if profile then lastKind[num] = profile.name end
     local kind = lastKind[num]
-    local active = isHeld and not busy(player)
+    local active = profile ~= nil and not busy(player)
     if active ~= (riding[num] or false) then
         riding[num] = active
         player:setVariable(kind .. "Active", active)
@@ -146,15 +224,50 @@ Events.OnPlayerUpdate.Add(function(player)
         -- hop on / step off: the mount and dismount nodes play while PogoTransition names them; the timer below clears it
         -- even if the clip's own end never does (the clips are TRANSITION_SECONDS long)
         if isHeld and profile.mount then
-            player:setVariable("PogoTransition", active and "mount" or "dismount")
-            transitionUntil[num] = getTimestampMs() + TRANSITION_SECONDS * 1000
+            player:setVariable(kind .. "Transition", active and "mount" or "dismount")
+            transitionUntil[num] = getTimestampMs() + (profile.transitionSeconds or TRANSITION_SECONDS) * 1000
         end
     end
     if transitionUntil[num] and getTimestampMs() > transitionUntil[num] then
         transitionUntil[num] = nil
-        player:setVariable("PogoTransition", "")
+        player:setVariable(kind .. "Transition", "")
     end
-    if not active then return end
+    if not active then
+        if stallUntil[num] then stallUntil[num] = nil; player:setVariable(kind .. "Stall", false) end
+        if coastUntil[num] then coastUntil[num] = nil; player:setVariable(kind .. "Coast", false) end
+        wasMoving[num] = false
+        return
+    end
+    if stallUntil[num] and getTimestampMs() > stallUntil[num] then
+        stallUntil[num] = nil
+        player:setVariable(profile.name .. "Stall", false)
+    end
+    -- stopping is not instant on skates: when the rider stops moving the coast clip carries them on for a moment
+    if profile.coast then
+        local moving = player:isPlayerMoving()
+        local nowMs = getTimestampMs()
+        if moving then
+            coastUntil[num] = nil
+            player:setVariable(profile.name .. "Coast", false)
+        elseif wasMoving[num] then
+            local running = player:isRunning()
+            local seconds = running and profile.coast.run or profile.coast.walk
+            local fallChance = profile.stopFall and (running and profile.stopFall.run or profile.stopFall.walk) or 0
+            fallChance = fallChance * (1 + (1 - player:getStats():get(CharacterStat.ENDURANCE))) * groundAt(player:getCurrentSquare()).stumble
+            if not ImpracticalTransport.calm and ZombRandFloat(0, 1) < fallChance then
+                print(string.format("ImpracticalTransport stop fall (chance %.2f)", fallChance))
+                ImpracticalTransport.stumble(player)
+            else
+                coastUntil[num] = nowMs + seconds * 1000
+                player:setVariable(profile.name .. "Coast", true)
+                print(string.format("ImpracticalTransport coast %.1fs", seconds))
+            end
+        elseif coastUntil[num] and nowMs > coastUntil[num] then
+            coastUntil[num] = nil
+            player:setVariable(profile.name .. "Coast", false)
+        end
+        wasMoving[num] = moving
+    end
 
     local stats = player:getStats()
     local endurance = stats:get(CharacterStat.ENDURANCE)
@@ -169,13 +282,29 @@ Events.OnPlayerUpdate.Add(function(player)
     -- Run and sprint have their own faster clips. Tier 0 is full pace, 1 and 2 are the slower clips for loose ground, a tired rider or a heavy slowdown.
     local gait = player:isSprinting() and "Sprint" or player:isRunning() and "Run" or ""
     local pace = tired * terrain
-    player:setVariable(profile.name .. "Tier", pace >= profile.tier1 and "0" or pace >= profile.tier2 and "1" or "2")
+    local tier = pace >= profile.tier1 and "0" or pace >= profile.tier2 and "1" or "2"
+    player:setVariable(profile.name .. "Tier", tier)
+    -- once a second while moving: every input to the slowdown and the speed it should produce, so a test can compare with the measured speed
+    local nowMs = getTimestampMs()
+    if player:isPlayerMoving() and nowMs - (lastPace[num] or 0) >= 1000 then
+        lastPace[num] = nowMs
+        -- the clip that plays decides the speed, and it can differ from the engine's gait flag (a bot's walk order sets isRunning but plays the walk clip)
+        local clip = tostring(player:getAnimationDebug()):match("Anim: (%S+)") or ""
+        local clipGait = clip:find("Sprint", 1, true) and "Sprint" or clip:find("Run", 1, true) and "Run" or ""
+        local base = profile.speed and profile.speed[clipGait]
+        print(string.format("ImpracticalTransport pace clip=%s gait=%s tired=%.2f vanilla=%.2f ground=%.2f pace=%.2f tier=%s expected=%.2f",
+            clip, gait == "" and "walk" or gait, tired, vanilla, ground.speed, pace, tier, base and base * TIER_SPEED[tier] or -1))
+    end
 
     if player:isPlayerMoving() then
         local fitness = player:getPerkLevel(Perks.Fitness)
         local perSecond = profile.drain * (profile["drain" .. gait] or 1) * (1.5 - fitness * 0.05) / math.max(0.2, terrain)   -- fitter riders tire slower, never zero; slow ground tires more
         stats:set(CharacterStat.ENDURANCE, math.max(0, endurance - perSecond * GameTime.getInstance():getTimeDelta()))
 
+        if ImpracticalTransport.calm then return end      -- tests set this to measure speed without random slips and falls (forced ones still work)
+        if profile.slip and not stallUntil[num] and ZombRandFloat(0, 1) < profile.slip * (profile["slip" .. gait] or 1) * (1 + (1 - endurance) * 4) * ground.stumble * GameTime.getInstance():getTimeDelta() then
+            ImpracticalTransport.slip(player, profile)
+        end
         -- stumbles: rarer for fit riders, much likelier once winded, never twice within the cooldown
         local now = getTimestampMs()
         if now >= (stumbleAfter[num] or 0) then

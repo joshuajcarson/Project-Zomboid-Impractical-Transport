@@ -9,14 +9,13 @@ module Base
 
         attachment Bip01_Prop1
         {
-            /* hand bone axes in the idle pose: X right, Y forward, Z up. 78 about X = 90 (the stick's up becomes the hand's up) minus the 12 degree forward lean the rider has in Bob_PogoHop (LEAN_DEG in tools/blender/pogo_hop.py); 102 would lean it back. */
-            rotate = 102.0000 0.0000 0.0000,
-            /* the grip held is the stick's one at model x = -0.105 (0.75 game units per metre; flipped after a test showed the right hand on the other one), 0.69 up the stick. After the turn that point is at (-0.105, 0.69 cos 78, 0.69 sin 78): cancel it so the hand holds the grip. */
-            offset = 0.1050 0.1434 -0.6749,
+            /* The held-item bone (Bip01_Prop1) is rolled 16.8 degrees about the rider's forward axis in the pose (measured in Blender, confirmed in game 2026-11-01 at the screen facings): R = Ry(16.8) Rx(90), written as rotate 90 0 -16.8. Pitch 90 stands the stick upright (the old 102 leaned it back). The offset cancels the grip point (0.69 up the stick) after the turn. */
+            rotate = 90.0000 0.0000 -16.8000,
+            offset = -0.0989 -0.0001 -0.6909,
         }
     }
 
-    /* the tricycle: attachment rotate and offset are fitted by screenshot (tools/make_trike_calibration.py); rotate x 90 stands the model up, y 180 turns it to face the rider's front */
+    /* the tricycle and unicycle: R = Ry(16.8) Rx(90) Ry(180) written as rotate -90 0 -163.2 (see the pogo note); the offset cancels the grip point */
     model Tricycle_3d
     {
         mesh = ImpracticalTransport/Tricycle,
@@ -25,8 +24,21 @@ module Base
 
         attachment Bip01_Prop1
         {
-            rotate = 90.0000 180.0000 0.0000,
-            offset = -0.1800 -0.2250 -0.5250,
+            rotate = -90.0000 0.0000 -163.2000,
+            offset = 0.0206 -0.2250 -0.5546,
+        }
+    }
+
+    model Unicycle_3d
+    {
+        mesh = ImpracticalTransport/Unicycle,
+        texture = ImpracticalTransport/Unicycle_texture,
+        scale = 1,
+
+        attachment Bip01_Prop1
+        {
+            rotate = -90.0000 0.0000 -163.2000,
+            offset = -0.1734 -0.1050 -0.5744,
         }
     }
 }

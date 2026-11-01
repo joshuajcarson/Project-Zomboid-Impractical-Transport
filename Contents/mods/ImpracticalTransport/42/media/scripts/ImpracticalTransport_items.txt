@@ -35,4 +35,34 @@ module ImpracticalTransport
         MaxDamage = 0.2,
         Tags = ImpracticalTransport;
     }
+
+    /* A unicycle: balance is the whole job. Held two-handed; model, texture and icon come from tools/blender/unicycle.py. */
+    item Unicycle
+    {
+        DisplayName = Unicycle,
+        ItemType = base:weapon,
+        Weight = 5.0,
+        Icon = Unicycle,
+        WeaponSprite = Unicycle_3d,
+        WorldStaticModel = Unicycle_3d,
+        TwoHandWeapon = TRUE,
+        RequiresEquippedBothHands = TRUE,
+        MaxRange = 0.5,
+        MinDamage = 0.1,
+        MaxDamage = 0.2,
+        Tags = ImpracticalTransport;
+    }
+
+    /* Roller skates: a worn shoe item (experiment, first step: no model of their own yet). The Lua sees them in the shoes slot and puts the rider in the skating state. */
+    item RollerSkates
+    {
+        DisplayCategory = Clothing,
+        ItemType = base:clothing,
+        Icon = Shoes,
+        BodyLocation = base:shoes,
+        ClothingItem = RollerSkates,
+        BloodLocation = Shoes,
+        Weight = 1.5,
+        Tags = ImpracticalTransport;
+    }
 }

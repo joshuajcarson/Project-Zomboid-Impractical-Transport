@@ -16,7 +16,7 @@ OUT_X = ROOT / "Contents/mods/ImpracticalTransport/42/media/anims_X/Bob/Bob_Trik
 PREVIEW = ROOT / "previews"; PREVIEW.mkdir(exist_ok=True)
 FPS = 30
 s = pogo_stick.GAME_UNITS_PER_METRE
-LEAN = math.radians(float(os.environ.get("TRIKE_LEAN_DEG", 25)))      # torso leans forward over the handlebar
+LEAN = math.radians(float(os.environ.get("TRIKE_LEAN_DEG", -6)))      # torso leans back a little: an adult on a child's toy, fighting to stay upright
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 arm, meshes, rl0, _ = zx.import_body(GAME / "models_X/Skinned/MaleBody.x")
@@ -86,28 +86,34 @@ seat_lift = (at(SADDLE).z + HIP_ABOVE_SADDLE) - hip_z
 Rlean = Matrix.Rotation(LEAN, 3, up.cross(fwd))   # a positive turn tips the top forward (see pogo_hop.py)
 Rlean_m = Mi.to_3x3() @ Rlean @ arm.matrix_world.to_3x3()
 
-def pose(phase):
-    """phase: pedal angle in turns (0..1); the right pedal is ahead at 0."""
+def pose(phase, tip=0.0, torso=0.0):
+    """phase: pedal angle in turns (0..1); the right pedal is ahead at 0. tip: degrees the trike and rider pitch back about the rear axle (front wheel up);
+    torso: extra degrees the rider's upper body tilts back."""
     for p in pb: p.matrix_basis = Matrix.Identity(4)
     bpy.context.view_layer.update()
-    pivot = at(SADDLE) + up * HIP_ABOVE_SADDLE + fwd * (-0.02 * s)     # the hip: the torso turns about it
-    tilt = lambda v: pivot + Rlean @ (v - pivot)
+    axis = up.cross(fwd)
+    RL = Matrix.Rotation(LEAN - math.radians(torso), 3, axis)
+    Rt = Matrix.Rotation(-math.radians(tip), 3, axis)           # a negative turn tips the top back: the front wheel comes up
+    RLm = Mi.to_3x3() @ (Rt @ RL) @ arm.matrix_world.to_3x3()
+    Rtm = Mi.to_3x3() @ Rt @ arm.matrix_world.to_3x3()
+    axle = at((0.0, -0.22, 0.11))
+    T = lambda v: axle + Rt @ (v - axle)                          # a point of the trike or rider after the tip
     pelvis = arm.matrix_world @ rest["Bip01"].translation
-    pelvis = pelvis + up * seat_lift + fwd * (-0.02 * s)
-    pb["Bip01"].matrix = Matrix.Translation(Mi @ pelvis) @ (Rlean_m @ rest["Bip01"].to_3x3()).to_4x4()
+    pelvis = T(pelvis + up * seat_lift + fwd * (-0.02 * s))
+    pb["Bip01"].matrix = Matrix.Translation(Mi @ pelvis) @ (RLm @ rest["Bip01"].to_3x3()).to_4x4()
     bpy.context.view_layer.update()
     for pre, sgn in (("L_", 1), ("R_", -1)):         # sgn: +1 = rider's left (side), -1 = right
         right = sgn < 0
-        ang = 2 * math.pi * (phase + (0.0 if right else 0.5))
+        ang = -2 * math.pi * (phase + (0.0 if right else 0.5))      # clockwise seen from the rider's right (the unicycle's direction): the top of the circle moves forward
         pedal = (-sgn * (tri.PEDAL_X + 0.02), tri.HUB[1] + tri.CRANK * math.cos(ang), tri.HUB[2] + tri.CRANK * math.sin(ang) + 0.02)
-        foot_t = at(pedal) + up * ankle
+        foot_t = T(at(pedal)) + up * ankle
         hand = f"Bip01_{pre}Hand"
-        prop_off = arm.matrix_world.to_3x3() @ (Rlean_m @ idle_hand[hand]) @ next(r for (h, _), r in prop_rel.items() if h == hand).translation
-        grip = at((-sgn * tri.GRIP[0], tri.GRIP[1], tri.GRIP[2]))
-        limb(f"Bip01_{pre}Thigh", f"Bip01_{pre}Calf", f"Bip01_{pre}Foot", foot_t, Rlean @ (fwd * 1.0 + up * 0.7 + side * sgn * 0.25), True, Rlean_m)
-        limb(f"Bip01_{pre}UpperArm", f"Bip01_{pre}Forearm", f"Bip01_{pre}Hand", grip - prop_off, Rlean @ (-fwd * 0.3 + side * sgn * 0.6 - up * 0.6), False, Rlean_m)
+        prop_off = arm.matrix_world.to_3x3() @ (RLm @ idle_hand[hand]) @ next(r for (h, _), r in prop_rel.items() if h == hand).translation
+        grip = T(at((-sgn * tri.GRIP[0], tri.GRIP[1], tri.GRIP[2])))
+        limb(f"Bip01_{pre}Thigh", f"Bip01_{pre}Calf", f"Bip01_{pre}Foot", foot_t, (Rt @ RL) @ (fwd * 1.0 + up * 0.7 + side * sgn * 0.25), True, RLm)
+        limb(f"Bip01_{pre}UpperArm", f"Bip01_{pre}Forearm", f"Bip01_{pre}Hand", grip - prop_off, (Rt @ RL) @ (-fwd * 0.3 + side * sgn * 0.6 - up * 0.6), False, RLm)
     for (h, pr), rel in prop_rel.items():
-        pb[pr].matrix = Matrix.Translation((pb[h].matrix @ rel).translation) @ (idle_hand[h] @ rel.to_3x3()).to_4x4()
+        pb[pr].matrix = Matrix.Translation((pb[h].matrix @ rel).translation) @ (Rtm @ idle_hand[h] @ rel.to_3x3()).to_4x4()      # the trike pitches with the rider
     bpy.context.view_layer.update()
     local = {}
     for n in order:
@@ -128,6 +134,33 @@ for kind, frames in CYCLE.items():
         write_clip(f"Bob_TrikeRide{kind}{tier}", samples, frames, SPEED[kind] * (frames / FPS) / TILES_PER_TRAVEL_SECOND * tf)
 idle = pose(0.0)
 write_clip("Bob_TrikeIdle", {0: idle, 12: idle}, 12, 0)
+# mount and dismount: the trike stays where it is (Bip01_Prop1 is held at its seated transform in armature space) while the rider steps onto the seat or off it,
+# one step back; every frame is keyed so the prop does not swing. The dismount is played while the unequip action runs, the item goes when it ends.
+MOUNT_FRAMES = 32
+def fk(local):
+    for n in order:
+        par = pb[n].parent
+        pb[n].matrix = (par.matrix @ local[n]) if par else local[n].copy()
+        bpy.context.view_layer.update()
+seated = pose(0.0)
+PROP_FIXED = pb["Bip01_Prop1"].matrix.copy()
+off_pose = {n: m.copy() for n, m in idle_local.items()}
+off_pose["Bip01"].translation = off_pose["Bip01"].translation + Mi.to_3x3() @ (-fwd * 0.35 * s)       # standing, stepped back from the seat
+smooth = lambda w: w * w * (3 - 2 * w)
+def keyed(blend_of):
+    out = {}
+    for f in range(MOUNT_FRAMES + 1):
+        loc = blend_of(f); fk(loc)
+        pb["Bip01_Prop1"].matrix = PROP_FIXED; bpy.context.view_layer.update()
+        loc["Bip01_Prop1"] = pb["Bip01_Prop1"].parent.matrix.inverted() @ PROP_FIXED if pb["Bip01_Prop1"].parent else PROP_FIXED
+        out[f] = loc
+    return out
+write_clip("Bob_TrikeMount", keyed(lambda f: blend(off_pose, seated, smooth(min(1.0, f / 22)))), MOUNT_FRAMES, 0)
+write_clip("Bob_TrikeDismount", keyed(lambda f: blend(seated, off_pose, smooth(min(1.0, f / 22)))), MOUNT_FRAMES, 0)
+
+# pedal slip: the feet spin, the rider and trike tip back about the rear axle (front wheel up) and the torso tilts back, then it settles; zero travel
+bump = lambda f: math.sin(math.pi * f / 24) ** 2
+write_clip("Bob_TrikeSlip", {f: pose(2 * f / 24, tip=16 * bump(f), torso=12 * bump(f)) for f in range(25)}, 24, 0)
 
 # --- preview: read the ride clip back with the game-format reader, place the tricycle, render frames
 bpy.ops.wm.read_factory_settings(use_empty=True)

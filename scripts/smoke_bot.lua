@@ -30,7 +30,21 @@ RL.autoRearm = false
 commands.smokeunequipaction = function(p, a)
     local item = p:getPrimaryHandItem()
     if not item then return false, "nothing held" end
-    ISTimedActionQueue.add(ISUnequipAction:new(p, item, 50))
+    local action = ISUnequipAction:new(p, item, 50)
+    print("UNEQUIP maxTime=" .. tostring(action.maxTime) .. " dismount=" .. tostring(action.ipDismount) .. " fromHotbar=" .. tostring(action.fromHotbar))
+    ISTimedActionQueue.add(action)
+    return true, "queued"
+end
+-- smokeunequiptime|maxTime: unequip with that maxTime and log how long the action really lasts ("UNEQUIPTIME maxTime=.. real=.. ms")
+commands.smokeunequiptime = function(p, a)
+    local item = p:getPrimaryHandItem()
+    if not item then return false, "nothing held" end
+    local action = ISUnequipAction:new(p, item, 50)
+    action.maxTime = tonumber(a and a.a) or action.maxTime
+    local t0, requested = getTimestampMs(), action.maxTime
+    local perform = action.perform
+    action.perform = function(self) print("UNEQUIPTIME maxTime=" .. requested .. " real=" .. (getTimestampMs() - t0) .. " ms"); return perform(self) end
+    ISTimedActionQueue.add(action)
     return true, "queued"
 end
 commands.smokehands = function(p, a)
@@ -87,7 +101,9 @@ end
 commands.smokeview = function(p, a)
     local steps = tonumber(a and a.a) or 6
     local ok, err = pcall(function()
+        ISUIHandler.setVisibleAllUI(true)      -- the handler skips a hide it believes is done: a chat message pops the chat back up behind its back
         ISUIHandler.setVisibleAllUI(false)
+        if ISChat and ISChat.instance then ISChat.instance:setVisible(false) end
         local before = getCore():getZoom(0)
         for _ = 1, math.abs(steps) do getCore():doZoomScroll(0, steps > 0 and -1 or 1) end
         print("smokeview zoom " .. tostring(before) .. " -> " .. tostring(getCore():getZoom(0)))
@@ -181,6 +197,155 @@ commands.smokeendurance = function(p, a)
     return true, "endurance " .. tostring(p:getStats():get(CharacterStat.ENDURANCE))
 end
 
+-- Repeatable test conditions: smokereset puts the character, weather, clock and surroundings into a fixed state (and keeps the clock there every update), smokecheck logs what it finds and fails if anything is off, so a measurement can be trusted.
+local NEEDS = {"HUNGER", "THIRST", "FATIGUE", "STRESS", "BOREDOM", "UNHAPPINESS", "SICKNESS", "PAIN"}
+local NOON, BODY_TEMP, CORPSE_RADIUS = 12, 37, 20
+local resetHandler
+
+local function corpsesNear(p, remove)
+    local sq, count = p:getCurrentSquare(), 0
+    if not sq then return 0 end
+    local cell = getCell()
+    for dx = -CORPSE_RADIUS, CORPSE_RADIUS do
+        for dy = -CORPSE_RADIUS, CORPSE_RADIUS do
+            local s = cell:getGridSquare(sq:getX() + dx, sq:getY() + dy, sq:getZ())
+            local bodies = s and s:getDeadBodys()
+            for i = (bodies and bodies:size() or 0) - 1, 0, -1 do
+                count = count + 1
+                if remove then s:removeCorpse(bodies:get(i), false) end
+            end
+        end
+    end
+    return count
+end
+
+commands.smokereset = function(p, a)
+    local stats = p:getStats()
+    for _, n in ipairs(NEEDS) do if CharacterStat[n] then stats:set(CharacterStat[n], 0) end end
+    stats:set(CharacterStat.ENDURANCE, 1)
+    if resetHandler then Events.OnPlayerUpdate.Remove(resetHandler) end
+    resetHandler = function(player)
+        if player ~= p then return end
+        getGameTime():setTimeOfDay(NOON)
+    end
+    Events.OnPlayerUpdate.Add(resetHandler)
+    return true, "reset, corpses removed " .. corpsesNear(p, true)
+end
+
+commands.smokecheck = function(p, a)
+    local stats, inv, problems = p:getStats(), p:getInventory(), {}
+    local function read(label, fn)      -- an API that does not exist is reported, not fatal
+        local ok, v = pcall(fn)
+        if ok and v ~= nil then return v end
+        problems[#problems + 1] = "cannot read " .. label
+        return 0
+    end
+    for _, n in ipairs(NEEDS) do
+        local v = CharacterStat[n] and stats:get(CharacterStat[n]) or 0
+        if v > 0.01 then problems[#problems + 1] = n:lower() .. "=" .. string.format("%.2f", v) end
+    end
+    local weight, cap = read("weight", function() return p:getInventoryWeight() end), read("capacity", function() return p:getMaxWeight() end)
+    if weight > cap then problems[#problems + 1] = string.format("overweight %.1f/%.1f", weight, cap) end
+    local temp, hour = read("temperature", function() return p:getBodyDamage():getThermoregulator():getCoreTemperature() end), read("hour", function() return getGameTime():getTimeOfDay() end)
+    if math.abs(temp - BODY_TEMP) > 0.5 then problems[#problems + 1] = string.format("temperature=%.1f", temp) end
+    if math.abs(hour - NOON) > 0.5 then problems[#problems + 1] = string.format("hour=%.1f", hour) end
+    if read("rain", function() return getClimateManager():isRaining() end) == true then problems[#problems + 1] = "raining" end
+    local corpses = read("corpses", function() return corpsesNear(p, false) end)
+    if corpses > 0 then problems[#problems + 1] = "corpses=" .. corpses end
+    local report = string.format("temp=%.1f hour=%.1f weight=%.1f/%.1f endurance=%.2f corpses=%d", temp, hour, weight, cap, stats:get(CharacterStat.ENDURANCE), corpses)
+    if #problems > 0 then report = report .. " PROBLEMS " .. table.concat(problems, ", ") end
+    print("SMOKECHECK " .. report)
+    return #problems == 0, report
+end
+
+-- smokeweather|free: log whether it is raining (free = drop the client-side overrides first, so the server's weather shows)
+commands.smokeweather = function(p, a)
+    local clim = getClimateManager()
+    if a and a.a == "free" then for _, f in ipairs({3, 5}) do clim:getClimateFloat(f):setEnableOverride(false) end end
+    local function read(fn) local ok, v = pcall(fn); if not ok or v == nil then return "?" end return type(v) == "number" and string.format("%.2f", v) or tostring(v) end
+    local msg = string.format("WEATHER raining=%s snowing=%s storm=%s precip=%s fog=%s wind=%s temp=%s running=%s",
+        read(function() return clim:isRaining() end), read(function() return clim:isSnowing() end),
+        read(function() return clim:getThunderStorm():isRunning() end), read(function() return clim:getClimateFloat(3):getInternalValue() end),
+        read(function() return clim:getClimateFloat(5):getInternalValue() end), read(function() return clim:getClimateFloat(6):getInternalValue() end),
+        read(function() return clim:getAirTemperatureForCharacter(p) end), read(function() return clim:getWeatherPeriod():isRunning() end))
+    print(msg)
+    return true, msg
+end
+
+-- smokeslip: force a pedal slip on the held tricycle or unicycle (logs "ImpracticalTransport slip")
+commands.smokeslip = function(p, a)
+    local profile = ImpracticalTransport.getProfile(p)
+    if not (profile and profile.slip) then return false, "no slipping transport in hand" end
+    ImpracticalTransport.slip(p, profile)
+    return true, "slip"
+end
+
+-- smokescan|radius: count the ground types (as the mod classifies them) and bushes or trees around the player and log the first square of each as "SCAN <type> n=<count> first=<x>,<y>"
+commands.smokescan = function(p, a)
+    local r = tonumber(a and a.a) or 40
+    local cell, px, py = getCell(), math.floor(p:getX()), math.floor(p:getY())
+    local seen, order = {}, {}
+    for dx = -r, r do
+        for dy = -r, r do
+            local sq = cell:getGridSquare(px + dx, py + dy, 0)
+            if sq then
+                local g = ImpracticalTransport.groundAt(sq)
+                local keys = { tostring(g[1] or "neutral") }
+                if sq:HasTree() then keys[#keys + 1] = "TREE" end
+                if sq:getBush() ~= nil then keys[#keys + 1] = "BUSH" end
+                for _, key in ipairs(keys) do
+                    if not seen[key] then seen[key] = { n = 0, x = px + dx, y = py + dy }; order[#order + 1] = key end
+                    seen[key].n = seen[key].n + 1
+                end
+            end
+        end
+    end
+    for _, key in ipairs(order) do print(string.format("SCAN %s n=%d first=%d,%d", key, seen[key].n, seen[key].x, seen[key].y)) end
+    return true, "scanned " .. #order .. " kinds"
+end
+
+-- smokewear|Type: wear a clothing item from the inventory like a player (a real timed action)
+commands.smokewear = function(p, a)
+    local item = p:getInventory():getFirstTypeRecurse((a and a.a) or "")
+    if not item then return false, "not in inventory" end
+    ISTimedActionQueue.add(ISWearClothing:new(p, item, 50))
+    return true, "queued"
+end
+
+-- smokeworn: log what is worn and the transport variables ("WORN <type> ... SkatesActive=..")
+commands.smokeworn = function(p, a)
+    local worn = p:getWornItems()
+    local names = {}
+    for i = 0, worn:size() - 1 do names[#names + 1] = tostring(worn:get(i):getItem():getFullType()) end
+    print("WORN " .. table.concat(names, " ") .. " SkatesActive=" .. tostring(p:getVariableBoolean("SkatesActive")) .. " profile=" .. tostring(ImpracticalTransport.getProfile(p) and ImpracticalTransport.getProfile(p).name))
+    return true, "logged"
+end
+
+-- smokeunwear|Type: take a worn clothing item off like a player (a real unequip action)
+commands.smokeunwear = function(p, a)
+    local item = p:getInventory():getFirstTypeRecurse((a and a.a) or "")
+    if not item then return false, "not in inventory" end
+    ISTimedActionQueue.add(ISUnequipAction:new(p, item, 50))
+    return true, "queued"
+end
+
+-- smokecalm|1/0: no random slips or stumbles (speed measurements); forced ones (smokeslip, smokestumble) still happen
+commands.smokecalm = function(p, a)
+    ImpracticalTransport.calm = (a and a.a) ~= "0"
+    return true, "calm " .. tostring(ImpracticalTransport.calm)
+end
+
+-- smokehold|value: keep endurance at that level every update (god mode refills it), so the winded-rider tiers can be tested; no value = stop holding
+local holdHandler
+commands.smokehold = function(p, a)
+    if holdHandler then Events.OnPlayerUpdate.Remove(holdHandler); holdHandler = nil end
+    local v = tonumber(a and a.a)
+    if not v then return true, "hold off" end
+    holdHandler = function(player) if player == p then player:getStats():set(CharacterStat.ENDURANCE, v) end end
+    Events.OnPlayerUpdate.Add(holdHandler)
+    return true, "holding endurance at " .. v
+end
+
 -- smokenode|ticks: log which anim node plays, once per change, for `ticks` updates ("NODE <tick> <node> <clip> transition=<PogoTransition> active=<PogoActive>")
 commands.smokenode = function(p, a)
     local left, tick, last = tonumber(a and a.a) or 300, 0, nil
@@ -190,7 +355,7 @@ commands.smokenode = function(p, a)
         local d = tostring(player:getAnimationDebug())
         local node, clip = d:match("Node: (%S+)"), d:match("Anim: (%S+)")
         local key = tostring(node) .. "/" .. tostring(clip) .. "/" .. tostring(player:getVariableString("PogoTransition")) .. "/" .. tostring(player:getVariableBoolean("PogoActive"))
-        if key ~= last then last = key; print("NODE " .. tick .. " " .. key) end
+        if key ~= last then last = key; print("NODE " .. tick .. " t=" .. getTimestampMs() .. " " .. key) end
         if tick >= left then Events.OnPlayerUpdate.Remove(sample) end
     end
     Events.OnPlayerUpdate.Add(sample)
