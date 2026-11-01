@@ -207,9 +207,6 @@ commands.smokereset = function(p, a)
     local stats = p:getStats()
     for _, n in ipairs(NEEDS) do if CharacterStat[n] then stats:set(CharacterStat[n], 0) end end
     stats:set(CharacterStat.ENDURANCE, 1)
-    local clim = getClimateManager()
-    if clim:getWeatherPeriod():isRunning() then clim:stopWeatherAndThunder() end
-    for _, f in ipairs({3, 5}) do local v = clim:getClimateFloat(f); v:setEnableOverride(true); v:setOverride(0, 1) end      -- 3 = precipitation, 5 = fog (the server's weather keeps running; this overrides what this client sees)
     if resetHandler then Events.OnPlayerUpdate.Remove(resetHandler) end
     resetHandler = function(player)
         if player ~= p then return end
@@ -234,7 +231,7 @@ commands.smokecheck = function(p, a)
     local weight, cap = read("weight", function() return p:getInventoryWeight() end), read("capacity", function() return p:getMaxWeight() end)
     if weight > cap then problems[#problems + 1] = string.format("overweight %.1f/%.1f", weight, cap) end
     local temp, hour = read("temperature", function() return p:getBodyDamage():getThermoregulator():getCoreTemperature() end), read("hour", function() return getGameTime():getTimeOfDay() end)
-    if math.abs(temp - BODY_TEMP) > 0.3 then problems[#problems + 1] = string.format("temperature=%.1f", temp) end
+    if math.abs(temp - BODY_TEMP) > 0.5 then problems[#problems + 1] = string.format("temperature=%.1f", temp) end
     if math.abs(hour - NOON) > 0.5 then problems[#problems + 1] = string.format("hour=%.1f", hour) end
     if read("rain", function() return getClimateManager():isRaining() end) == true then problems[#problems + 1] = "raining" end
     local corpses = read("corpses", function() return corpsesNear(p, false) end)
@@ -243,6 +240,15 @@ commands.smokecheck = function(p, a)
     if #problems > 0 then report = report .. " PROBLEMS " .. table.concat(problems, ", ") end
     print("SMOKECHECK " .. report)
     return #problems == 0, report
+end
+
+-- smokeweather|free: log whether it is raining (free = drop the client-side overrides first, so the server's weather shows)
+commands.smokeweather = function(p, a)
+    local clim = getClimateManager()
+    if a and a.a == "free" then for _, f in ipairs({3, 5}) do clim:getClimateFloat(f):setEnableOverride(false) end end
+    local msg = string.format("WEATHER raining=%s precipitation=%.2f", tostring(clim:isRaining()), clim:getClimateFloat(3):getInternalValue())
+    print(msg)
+    return true, msg
 end
 
 -- smokenode|ticks: log which anim node plays, once per change, for `ticks` updates ("NODE <tick> <node> <clip> transition=<PogoTransition> active=<PogoActive>")

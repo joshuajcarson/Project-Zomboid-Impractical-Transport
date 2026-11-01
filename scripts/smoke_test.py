@@ -50,14 +50,18 @@ def stage_server():
     ini.write_text(re.sub(r"(?m)^Mods=.*$", f"Mods=RLBridge;{MOD_ID}", ini.read_text(encoding="utf-8")), encoding="utf-8")
     LOGS.mkdir(exist_ok=True)
     log = LOGS / f"smoke-server-{time.strftime('%Y%m%d-%H%M%S')}.log"
+    sandbox = RL / ".pzdata" / "Server" / "rl_SandboxVars.lua"      # DayLength 27 = real time, so noon stays noon for the whole run
+    original = sandbox.read_text(encoding="utf-8")
+    sandbox.write_text(re.sub(r"(?m)^(\s*DayLength = )\d+", r"\g<1>27", original), encoding="utf-8")
     _ps(["-File", str(RL / "scripts" / "start-server.ps1"), "-JavaAgent", str(RL / "agent" / "rl-agent.jar"),
          "-ChannelPort", "17600", "-Dev"], stdout=open(log, "wb"), stderr=subprocess.STDOUT)
     deadline = time.time() + 900
-    while time.time() < deadline:
+    while time.time() < deadline:      # the RL repo's own runs want their usual day length back as soon as the server has read the file
         text = log.read_bytes().replace(b"\x00", b"").decode("utf-8", "replace")
         if "*** SERVER STARTED" in text: break
         time.sleep(5)
-    else: fail(f"server did not start, see {log}")
+    else: sandbox.write_text(original, encoding="utf-8"); fail(f"server did not start, see {log}")
+    sandbox.write_text(original, encoding="utf-8")
     bad = [l for l in text.splitlines() if MOD_ID.lower() in l.lower() and ERR.search(l)] or \
           [l for l in text.splitlines() if re.search(r"Tricycle|PogoStick", l) and ERR.search(l)]
     re.search(r"required mod .* not found", text) and fail(f"server could not find a mod in its list, see {log}")
@@ -121,6 +125,7 @@ def stage_play(keep):
         bot("smokeunequipaction"); time.sleep(4); bot("smokechat", f"/removeitem {it} 0"); time.sleep(2)
     # fixed conditions: needs met, noon, no corpses, clear sky, carrying only what is expected; fails when any of it is off
     ch.command(f"heal|{USER}"); ch.command("settime|12"); ch.command(f"corpses|{me['x']:.0f}|{me['y']:.0f}|25|1")
+    bot("smokechat", "/stopweather"); time.sleep(3)      # the tester is an admin by now; weather is the server's, a client override is not enough
     bot("smokereset"); time.sleep(5); bot("smokecheck"); time.sleep(3)
     checks = re.findall(r"SMOKECHECK (.*)", sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding="utf-8", errors="replace"))
     print("conditions:", checks[-1] if checks else "no SMOKECHECK line")
