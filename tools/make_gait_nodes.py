@@ -69,14 +69,17 @@ for gait in ("", "Run"):
     for level, tier in enumerate(("", "T1", "T2", "F")):
         name = "coast_skates" + ("_run" if gait else "") + ("" if not level else f"_t{level}")
         text = COAST.format(name=name, clip=f"Bob_SkateCoast{gait}{tier}", gait=gait or "walk", tier=TIER.format(var="Skates", level=level))
-        (BASE / "idle" / (name + ".xml")).write_text(text, encoding="utf-8"); print("wrote idle", name)
+        (BASE / "idle" / (name + ".xml")).write_text(text, encoding="utf-8", newline="
+"); print("wrote idle", name)
 for var, t in TRANSPORTS.items():
     for folder, stem, suffix in t["gaits"]:
         for level, tier in enumerate(t.get("tiers", ("", "T1", "T2"))):
             file = stem + ("" if not level else f"_t{level}")
             name = file.replace("defaultSprint_pogo", "sprint_pogo")
             text = NODE.format(name=name, clip=f"{t['clip']}{suffix}{tier}", var=var, moving="true", tier=TIER.format(var=var, level=level))
-            (BASE / folder / (file + ".xml")).write_text(text, encoding="utf-8"); print("wrote", folder, file)
+            (BASE / folder / (file + ".xml")).write_text(text, encoding="utf-8", newline="
+"); print("wrote", folder, file)
     if "idle" in t:
         text = NODE.format(name=f"idle_{var.lower()}", clip=t["idle"], var=var, moving="false", tier="")
-        (BASE / "idle" / f"idle_{var.lower()}.xml").write_text(text, encoding="utf-8"); print("wrote idle", var)
+        (BASE / "idle" / f"idle_{var.lower()}.xml").write_text(text, encoding="utf-8", newline="
+"); print("wrote idle", var)
