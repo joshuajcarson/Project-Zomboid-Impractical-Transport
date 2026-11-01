@@ -1,5 +1,6 @@
 -- Rider state is derived from the equipped item each tick, so no saved state to migrate across patches.
--- The anim nodes in AnimSets/player/*_pogo.xml play only while PogoActive is true and take their speed from the variables set here.
+-- Each transport's anim nodes (AnimSets/player/*/<kind>_*.xml, written by tools/make_gait_nodes.py) play only while <Name>Active is true and pick their
+-- clip tier from <Name>Tier, both set here; a profile's `name` is Pogo or Trike. `mount` says the transport has mount and dismount clips.
 ImpracticalTransport = ImpracticalTransport or {}
 
 -- speed lives in the clips (tools/blender/pogo_hop.py: DISTANCE, GAITS, TIERS), not here
@@ -9,14 +10,23 @@ ImpracticalTransport = ImpracticalTransport or {}
 --   times stumbleRun / stumbleSprint: faster hopping falls much more than it speeds up
 local PROFILES = {
     ["ImpracticalTransport.PogoStick"] = {
+        name = "Pogo", mount = true,
         tier1 = 0.8, tier2 = 0.5,
         drain = 0.0035, drainRun = 1.6, drainSprint = 2.5,
         stumble = 0.0125, stumbleRun = 3.0, stumbleSprint = 6.0,
+    },
+    -- a child's tricycle under a grown rider: slow and tiring, but it rarely throws the rider
+    ["ImpracticalTransport.Tricycle"] = {
+        name = "Trike", mount = false,
+        tier1 = 0.8, tier2 = 0.5,
+        drain = 0.003, drainRun = 1.5, drainSprint = 1.5,
+        stumble = 0.004, stumbleRun = 3.0, stumbleSprint = 3.0,
     },
 }
 
 -- throw-away calibration variants (tools/make_calibration.py): same behaviour as the real stick
 for i = 1, 7 do PROFILES["ImpracticalTransport.PogoCal" .. i] = PROFILES["ImpracticalTransport.PogoStick"] end
+for i = 1, 4 do PROFILES["ImpracticalTransport.TrikeCal" .. i] = PROFILES["ImpracticalTransport.Tricycle"] end
 
 -- Ground under the rider, first match wins (lower-cased FloorMaterial property plus floor sprite name). Every number is a multiplier on top
 -- of the profile and of whatever vanilla already slows walking by: speed scales the hop, stumble scales the trip chance (endurance drain
@@ -84,6 +94,7 @@ end
 local riding = {}
 local held = {}
 local transitionUntil = {}
+local lastKind = {}      -- the Name of the last transport held, so its Active variable can be cleared after the item is gone
 local stumbleAfter = {}
 local lastReport = {}
 local STUMBLE_COOLDOWN_SECONDS = 20
@@ -125,14 +136,16 @@ Events.OnPlayerUpdate.Add(function(player)
         player:setIgnoreAimingInput(isHeld)
         player:setAuthorizeMeleeAction(not isHeld)
     end
+    if profile then lastKind[num] = profile.name end
+    local kind = lastKind[num]
     local active = isHeld and not busy(player)
     if active ~= (riding[num] or false) then
         riding[num] = active
-        player:setVariable("PogoActive", active)
+        player:setVariable(kind .. "Active", active)
         print("ImpracticalTransport riding=" .. tostring(active))
         -- hop on / step off: the mount and dismount nodes play while PogoTransition names them; the timer below clears it
         -- even if the clip's own end never does (the clips are TRANSITION_SECONDS long)
-        if isHeld then
+        if isHeld and profile.mount then
             player:setVariable("PogoTransition", active and "mount" or "dismount")
             transitionUntil[num] = getTimestampMs() + TRANSITION_SECONDS * 1000
         end
@@ -156,7 +169,7 @@ Events.OnPlayerUpdate.Add(function(player)
     -- Run and sprint have their own faster clips. Tier 0 is full pace, 1 and 2 are the slower clips for loose ground, a tired rider or a heavy slowdown.
     local gait = player:isSprinting() and "Sprint" or player:isRunning() and "Run" or ""
     local pace = tired * terrain
-    player:setVariable("PogoTier", pace >= profile.tier1 and "0" or pace >= profile.tier2 and "1" or "2")
+    player:setVariable(profile.name .. "Tier", pace >= profile.tier1 and "0" or pace >= profile.tier2 and "1" or "2")
 
     if player:isPlayerMoving() then
         local fitness = player:getPerkLevel(Perks.Fitness)

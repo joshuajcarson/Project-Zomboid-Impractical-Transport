@@ -15,4 +15,18 @@ module Base
             offset = 0.1050 0.1434 -0.6749,
         }
     }
+
+    /* the tricycle: attachment rotate and offset are fitted by screenshot (tools/make_trike_calibration.py); rotate x 90 stands the model up, y 180 turns it to face the rider's front */
+    model Tricycle_3d
+    {
+        mesh = ImpracticalTransport/Tricycle,
+        texture = ImpracticalTransport/Tricycle_texture,
+        scale = 1,
+
+        attachment Bip01_Prop1
+        {
+            rotate = 90.0000 180.0000 0.0000,
+            offset = -0.1800 -0.2250 -0.5250,
+        }
+    }
 }

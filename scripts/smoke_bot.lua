@@ -196,3 +196,14 @@ commands.smokenode = function(p, a)
     Events.OnPlayerUpdate.Add(sample)
     return true, "sampling " .. left
 end
+
+-- smokeinv: log the mod's items in the inventory
+commands.smokeinv = function(p, a)
+    local names, items = {}, p:getInventory():getItems()
+    for i = 0, items:size() - 1 do
+        local t = items:get(i):getFullType()
+        if t:find("ImpracticalTransport", 1, true) then names[#names + 1] = t:gsub("ImpracticalTransport%.", "") end
+    end
+    print("INV " .. table.concat(names, " "))
+    return true, "logged"
+end

@@ -18,4 +18,21 @@ module ImpracticalTransport
         MaxDamage = 0.2,
         Tags = ImpracticalTransport;
     }
+
+    /* A child's tricycle under a grown rider. Held two-handed; model, texture and icon come from tools/blender/tricycle.py. */
+    item Tricycle
+    {
+        DisplayName = Tricycle,
+        ItemType = base:weapon,
+        Weight = 6.0,
+        Icon = Tricycle,
+        WeaponSprite = Tricycle_3d,
+        WorldStaticModel = Tricycle_3d,
+        TwoHandWeapon = TRUE,
+        RequiresEquippedBothHands = TRUE,
+        MaxRange = 0.5,
+        MinDamage = 0.1,
+        MaxDamage = 0.2,
+        Tags = ImpracticalTransport;
+    }
 }

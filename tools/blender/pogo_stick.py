@@ -77,24 +77,26 @@ template MeshTextureCoords { <f6f23f40-7686-11cf-8f52-0040333594a3> DWORD nTextu
 """
 
 
-def write_palette(colours, swatch=8):
+def write_palette(colours, swatch=8, path=None):
     """One flat swatch per material, side by side: the game has one texture per model, so colours come from UVs."""
     img = bpy.data.images.new("PogoStickPalette", swatch * len(colours), swatch, alpha=False)
     pixel = lambda c: [v ** (1 / 2.2) for v in c] + [1.0]      # diffuse_color is linear; the PNG holds the sRGB value the viewport shows
     img.pixels = [v for _ in range(swatch) for c in colours for _ in range(swatch) for v in pixel(c)]
-    TEXTURE.parent.mkdir(parents=True, exist_ok=True)
-    img.filepath_raw = str(TEXTURE); img.file_format = "PNG"; img.save()
+    path = path or TEXTURE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    img.filepath_raw = str(path); img.file_format = "PNG"; img.save()
 
 
 
 
-def export_x(obj, path, scale=GAME_UNITS_PER_METRE):
+def export_x(obj, path, scale=GAME_UNITS_PER_METRE, texture=None):
     """Static mesh as a text DirectX .X file in the game's units, Y up (the format vanilla item models use).
     Blender (x, y, z up) -> game (x, z, y): swapping two axes flips handedness, which is what DirectX expects."""
     import bmesh
     bm = bmesh.new(); bm.from_mesh(obj.data); bmesh.ops.triangulate(bm, faces=bm.faces[:])
     mats = obj.data.materials
-    write_palette([m.diffuse_color[:3] for m in mats])
+    write_palette([m.diffuse_color[:3] for m in mats], path=texture)      # texture: another model's palette file (default: the pogo stick's)
+    texture_name = (texture or TEXTURE).name
     verts, uvs, norms = [], [], []
     for f in bm.faces:
         n = f.normal
@@ -113,7 +115,7 @@ def export_x(obj, path, scale=GAME_UNITS_PER_METRE):
            "".join(f"{u:.6f};{v:.6f};{end(i, len(uvs))}\n" for i, (u, v) in enumerate(uvs)), "}\n",
            "MeshMaterialList {\n1;\n", f"{nt};\n", ",".join("0" for _ in range(nt)), ";;\n",
            "Material Pogo {\n1.0;1.0;1.0;1.0;;\n0.0;\n0.0;0.0;0.0;;\n0.0;0.0;0.0;;\n",
-           'TextureFilename { "PogoStick_texture.png"; }\n}\n}\n}\n']
+           f'TextureFilename {{ "{texture_name}"; }}\n}}\n}}\n}}\n']
     pathlib.Path(path).parent.mkdir(parents=True, exist_ok=True)
     pathlib.Path(path).write_text("".join(out), encoding="latin-1", newline="\n")
     bm.free()
