@@ -248,17 +248,14 @@ end
 commands.smokeweather = function(p, a)
     local clim = getClimateManager()
     if a and a.a == "free" then for _, f in ipairs({3, 5}) do clim:getClimateFloat(f):setEnableOverride(false) end end
-    local msg = string.format("WEATHER raining=%s precipitation=%.2f", tostring(clim:isRaining()), clim:getClimateFloat(3):getInternalValue())
+    local function read(fn) local ok, v = pcall(fn); if not ok or v == nil then return "?" end return type(v) == "number" and string.format("%.2f", v) or tostring(v) end
+    local msg = string.format("WEATHER raining=%s snowing=%s storm=%s precip=%s fog=%s wind=%s temp=%s running=%s",
+        read(function() return clim:isRaining() end), read(function() return clim:isSnowing() end),
+        read(function() return clim:getThunderStorm():isRunning() end), read(function() return clim:getClimateFloat(3):getInternalValue() end),
+        read(function() return clim:getClimateFloat(5):getInternalValue() end), read(function() return clim:getClimateFloat(6):getInternalValue() end),
+        read(function() return clim:getAirTemperatureForCharacter(p) end), read(function() return clim:getWeatherPeriod():isRunning() end))
     print(msg)
     return true, msg
-end
-
--- smokeslip: force a pedal slip on the held tricycle (logs "ImpracticalTransport slip")
-commands.smokeslip = function(p, a)
-    local profile = ImpracticalTransport.getProfile(p)
-    if not (profile and profile.slip) then return false, "no slipping transport in hand" end
-    ImpracticalTransport.slip(p, profile)
-    return true, "slip"
 end
 
 -- smokecalm|1/0: no random slips or stumbles (speed measurements); forced ones (smokeslip, smokestumble) still happen
