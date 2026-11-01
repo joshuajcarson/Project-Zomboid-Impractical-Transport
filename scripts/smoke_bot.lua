@@ -181,6 +181,70 @@ commands.smokeendurance = function(p, a)
     return true, "endurance " .. tostring(p:getStats():get(CharacterStat.ENDURANCE))
 end
 
+-- Repeatable test conditions: smokereset puts the character, weather, clock and surroundings into a fixed state (and keeps the clock there every update), smokecheck logs what it finds and fails if anything is off, so a measurement can be trusted.
+local NEEDS = {"HUNGER", "THIRST", "FATIGUE", "STRESS", "BOREDOM", "UNHAPPINESS", "SICKNESS", "PAIN"}
+local NOON, BODY_TEMP, CORPSE_RADIUS = 12, 37, 20
+local resetHandler
+
+local function corpsesNear(p, remove)
+    local sq, count = p:getCurrentSquare(), 0
+    if not sq then return 0 end
+    local cell = getCell()
+    for dx = -CORPSE_RADIUS, CORPSE_RADIUS do
+        for dy = -CORPSE_RADIUS, CORPSE_RADIUS do
+            local s = cell:getGridSquare(sq:getX() + dx, sq:getY() + dy, sq:getZ())
+            local bodies = s and s:getDeadBodys()
+            for i = (bodies and bodies:size() or 0) - 1, 0, -1 do
+                count = count + 1
+                if remove then s:removeCorpse(bodies:get(i), false) end
+            end
+        end
+    end
+    return count
+end
+
+commands.smokereset = function(p, a)
+    local stats = p:getStats()
+    for _, n in ipairs(NEEDS) do if CharacterStat[n] then stats:set(CharacterStat[n], 0) end end
+    stats:set(CharacterStat.ENDURANCE, 1)
+    local clim = getClimateManager()
+    if clim:getWeatherPeriod():isRunning() then clim:stopWeatherAndThunder() end
+    for _, f in ipairs({3, 5}) do local v = clim:getClimateFloat(f); v:setEnableOverride(true); v:setOverride(0, 1) end      -- 3 = precipitation, 5 = fog (the server's weather keeps running; this overrides what this client sees)
+    if resetHandler then Events.OnPlayerUpdate.Remove(resetHandler) end
+    resetHandler = function(player)
+        if player ~= p then return end
+        getGameTime():setTimeOfDay(NOON)
+    end
+    Events.OnPlayerUpdate.Add(resetHandler)
+    return true, "reset, corpses removed " .. corpsesNear(p, true)
+end
+
+commands.smokecheck = function(p, a)
+    local stats, inv, problems = p:getStats(), p:getInventory(), {}
+    local function read(label, fn)      -- an API that does not exist is reported, not fatal
+        local ok, v = pcall(fn)
+        if ok and v ~= nil then return v end
+        problems[#problems + 1] = "cannot read " .. label
+        return 0
+    end
+    for _, n in ipairs(NEEDS) do
+        local v = CharacterStat[n] and stats:get(CharacterStat[n]) or 0
+        if v > 0.01 then problems[#problems + 1] = n:lower() .. "=" .. string.format("%.2f", v) end
+    end
+    local weight, cap = read("weight", function() return p:getInventoryWeight() end), read("capacity", function() return p:getMaxWeight() end)
+    if weight > cap then problems[#problems + 1] = string.format("overweight %.1f/%.1f", weight, cap) end
+    local temp, hour = read("temperature", function() return p:getBodyDamage():getThermoregulator():getCoreTemperature() end), read("hour", function() return getGameTime():getTimeOfDay() end)
+    if math.abs(temp - BODY_TEMP) > 0.3 then problems[#problems + 1] = string.format("temperature=%.1f", temp) end
+    if math.abs(hour - NOON) > 0.5 then problems[#problems + 1] = string.format("hour=%.1f", hour) end
+    if read("rain", function() return getClimateManager():isRaining() end) == true then problems[#problems + 1] = "raining" end
+    local corpses = read("corpses", function() return corpsesNear(p, false) end)
+    if corpses > 0 then problems[#problems + 1] = "corpses=" .. corpses end
+    local report = string.format("temp=%.1f hour=%.1f weight=%.1f/%.1f endurance=%.2f corpses=%d", temp, hour, weight, cap, stats:get(CharacterStat.ENDURANCE), corpses)
+    if #problems > 0 then report = report .. " PROBLEMS " .. table.concat(problems, ", ") end
+    print("SMOKECHECK " .. report)
+    return #problems == 0, report
+end
+
 -- smokenode|ticks: log which anim node plays, once per change, for `ticks` updates ("NODE <tick> <node> <clip> transition=<PogoTransition> active=<PogoActive>")
 commands.smokenode = function(p, a)
     local left, tick, last = tonumber(a and a.a) or 300, 0, nil

@@ -117,6 +117,15 @@ def stage_play(keep):
         p1 = pos(); v = math.hypot(p1["x"] - p0["x"], p1["y"] - p0["y"]) / (time.time() - t0)
         bot("stop"); time.sleep(1)      # a walk still in progress sits ahead of any later equip/unequip action in the timed-action queue
         return v
+    for it in ITEMS[1:]:      # every extra item is weight that slows the pogo measurements (ITEMS[0] is the one under test); they only had to load and add
+        bot("smokeunequipaction"); time.sleep(4); bot("smokechat", f"/removeitem {it} 0"); time.sleep(2)
+    # fixed conditions: needs met, noon, no corpses, clear sky, carrying only what is expected; fails when any of it is off
+    ch.command(f"heal|{USER}"); ch.command("settime|12"); ch.command(f"corpses|{me['x']:.0f}|{me['y']:.0f}|25|1")
+    bot("smokereset"); time.sleep(5); bot("smokecheck"); time.sleep(3)
+    checks = re.findall(r"SMOKECHECK (.*)", sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding="utf-8", errors="replace"))
+    print("conditions:", checks[-1] if checks else "no SMOKECHECK line")
+    checks or fail("smokecheck never reported (see client log)")
+    "PROBLEMS" in checks[-1] and fail("test conditions are not ideal: " + checks[-1])
     bot("smokeunequipaction"); time.sleep(4)
     walk = speed(12)
     bot("smokenode", "900")      # logs which anim nodes play, to see that the mount clip is chosen

@@ -35,6 +35,8 @@ Branch `claude/zomboid-inefficient-vehicles-mod-e27194`; the game and server are
 4. Then the next transports (roller skates, unicycle, stilts, inflatable ball) with the same pipeline.
 Live-test tools (no 6 minute server boot per probe): `scripts/live.py`, `shoot.py`, `check_visuals.py`, `calibrate_shots.py`, `gait_trace.py`; see the memory notes for the harness traps (arguments split at `|`, speed comes from clip tiers, nodes only play in the state their folder names).
 
+Test conditions (2026-11-01): `smokereset` and `smokecheck` (in `smoke_bot.lua`) plus the server's `heal`, `settime|12` and `corpses` commands put the tester in a fixed state; the smoke test fails if hunger/thirst/etc., body temperature, hour, rain, corpses within 25 squares or carried weight (limit 12) are off. Server-owned things (stats, clock, corpses) must be set through the harness's server commands: client-side changes are pulled back. Rain is overridden on the client only (no server weather command in the harness yet). Extra items in the pack made the pogo look slower (0.58 vs 0.86 tiles/s), so only the item under test is carried. Per-tick slowdown logging is not done yet (terrain line only on change).
+
 ## Status (2026-10-31)
 Smoke test passes: the item loads and equips, the hop clip loads (bare walking ~1.4 tiles/s, pogo ~0.8), a real unequip action works, endurance drains. Not yet seen by a human: how the hop animation looks, whether the right hand sits on the right grip (the sideways offset sign is a guess; flip `offset.x` if it is on the wrong side), and that aiming/swinging is blocked.
 
