@@ -17,6 +17,8 @@ def window():
     return h
 
 def raise_window(h):
+    if u.GetForegroundWindow() == h:      # already in front (an earlier call raised it): no need to wait for it to repaint
+        u.SetWindowPos(h, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE_NOSIZE); return
     u.keybd_event(0x12, 0, 0, 0); u.keybd_event(0x12, 0, 2, 0)    # a tap of Alt lets SetForegroundWindow through
     u.ShowWindow(h, 9); u.SetWindowPos(h, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE_NOSIZE); u.SetForegroundWindow(h)
     time.sleep(1.5)

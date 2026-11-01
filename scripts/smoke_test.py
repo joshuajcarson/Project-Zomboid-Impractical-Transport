@@ -117,9 +117,11 @@ def stage_play(keep):
         return v
     bot("smokeunequipaction"); time.sleep(4)
     walk = speed(12)
+    bot("smokenode", "900")      # logs which anim nodes play, to see that the mount clip is chosen
     bot("smokeequipaction", "PogoStick"); time.sleep(5)
     logs = sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)
     "ImpracticalTransport riding=true" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("riding flag never set (see client log)")
+    "mount_pogo/Bob_PogoMount" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("the mount anim node never played (see NODE lines in the client log)")
     pogo = speed(-12)
     bot("smokestumble"); time.sleep(8)      # the fall animation has to finish before the unequip below is queued
     "ImpracticalTransport stumble" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("forced stumble never ran (see client log)")

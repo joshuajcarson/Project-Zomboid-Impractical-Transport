@@ -180,3 +180,19 @@ commands.smokeendurance = function(p, a)
     p:getStats():set(CharacterStat.ENDURANCE, tonumber(a and a.a) or 1)
     return true, "endurance " .. tostring(p:getStats():get(CharacterStat.ENDURANCE))
 end
+
+-- smokenode|ticks: log which anim node plays, once per change, for `ticks` updates ("NODE <tick> <node> <clip> transition=<PogoTransition> active=<PogoActive>")
+commands.smokenode = function(p, a)
+    local left, tick, last = tonumber(a and a.a) or 300, 0, nil
+    local function sample(player)
+        if player ~= p then return end
+        tick = tick + 1
+        local d = tostring(player:getAnimationDebug())
+        local node, clip = d:match("Node: (%S+)"), d:match("Anim: (%S+)")
+        local key = tostring(node) .. "/" .. tostring(clip) .. "/" .. tostring(player:getVariableString("PogoTransition")) .. "/" .. tostring(player:getVariableBoolean("PogoActive"))
+        if key ~= last then last = key; print("NODE " .. tick .. " " .. key) end
+        if tick >= left then Events.OnPlayerUpdate.Remove(sample) end
+    end
+    Events.OnPlayerUpdate.Add(sample)
+    return true, "sampling " .. left
+end
