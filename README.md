@@ -27,6 +27,8 @@ Run any of them with `"C:\Program Files\Blender Foundation\Blender 4.1\blender.e
 - Stop everything afterwards: `python <RL repo>/scripts/cleanup.py`.
 Lessons baked into the test: the server checksums scripts, so any mod edit needs a full server boot; items must be added server-side (`/additem`), and hands must only change through real equip/unequip actions, or the server and client disagree and nothing can be equipped.
 
+Human validation queue: `docs/human-testing-queue.md` (what to test, what a pass looks like, decisions needed).
+
 ## Milestones (tracked here; update the checkboxes as tasks finish)
 **M1: the tricycle is a second finished transport, verified without a human where possible** (target 2026-11-01 overnight run).
 - [x] Model, clips, item, Lua profile, nodes

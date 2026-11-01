@@ -258,6 +258,14 @@ commands.smokeweather = function(p, a)
     return true, msg
 end
 
+-- smokeslip: force a pedal slip on the held tricycle or unicycle (logs "ImpracticalTransport slip")
+commands.smokeslip = function(p, a)
+    local profile = ImpracticalTransport.getProfile(p)
+    if not (profile and profile.slip) then return false, "no slipping transport in hand" end
+    ImpracticalTransport.slip(p, profile)
+    return true, "slip"
+end
+
 -- smokecalm|1/0: no random slips or stumbles (speed measurements); forced ones (smokeslip, smokestumble) still happen
 commands.smokecalm = function(p, a)
     ImpracticalTransport.calm = (a and a.a) ~= "0"
