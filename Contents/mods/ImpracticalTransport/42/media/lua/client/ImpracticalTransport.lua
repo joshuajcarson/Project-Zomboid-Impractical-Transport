@@ -2,14 +2,14 @@
 -- The anim nodes in AnimSets/player/*_pogo.xml play only while PogoActive is true and take their speed from the variables set here.
 ImpracticalTransport = ImpracticalTransport or {}
 
--- walk/run/sprint: playback speed of the Bob_PogoHop clip (1 = one hop per 0.8 s, 0.64 tiles each, so 0.8 tiles/s; bare walking is ~1.4).
---   run and sprint keep roughly vanilla's step up from walking (the ratios are estimates, not yet measured)
+-- speed lives in the clips (tools/blender/pogo_hop.py: DISTANCE, GAITS, TIERS), not here
+-- tier1, tier2: pace (tiredness x terrain x engine slowdown) under which the slower hop clips play; dirt and grass stay at full pace
 -- drain: endurance lost per second while moving, times drainRun / drainSprint when running or sprinting
 -- stumble: chance per second of tripping while fresh (about one fall every 80 s of hopping; winded riders trip up to 5x as often),
 --   times stumbleRun / stumbleSprint: faster hopping falls much more than it speeds up
 local PROFILES = {
     ["ImpracticalTransport.PogoStick"] = {
-        walk = 1.0, run = 1.7, sprint = 2.2,
+        tier1 = 0.8, tier2 = 0.5,
         drain = 0.0035, drainRun = 1.6, drainSprint = 2.5,
         stumble = 0.0125, stumbleRun = 3.0, stumbleSprint = 6.0,
     },
@@ -152,13 +152,11 @@ Events.OnPlayerUpdate.Add(function(player)
     local terrain = vanilla * ground.speed
     local report = string.format("vanilla=%.2f ground=%.2f", vanilla, ground.speed)
     if report ~= lastReport[num] then lastReport[num] = report; print("ImpracticalTransport terrain " .. report) end
-    -- the engine can keep the walk node playing while the rider runs, so all three nodes read the speed of the current gait
+    -- Speed comes from which clip plays, not from a playback variable (those do nothing, see the README): the anim nodes pick a clip tier from PogoTier.
+    -- Run and sprint have their own faster clips. Tier 0 is full pace, 1 and 2 are the slower clips for loose ground, a tired rider or a heavy slowdown.
     local gait = player:isSprinting() and "Sprint" or player:isRunning() and "Run" or ""
-    local hop = (profile[gait:lower()] or profile.walk) * tired * terrain
-    player:setVariable("PogoWalkSpeed", hop)
-    player:setVariable("PogoRunSpeed", hop)
-    player:setVariable("PogoSprintSpeed", hop)
-    player:setVariable("PogoSpeed", 1)
+    local pace = tired * terrain
+    player:setVariable("PogoTier", pace >= profile.tier1 and "0" or pace >= profile.tier2 and "1" or "2")
 
     if player:isPlayerMoving() then
         local fitness = player:getPerkLevel(Perks.Fitness)

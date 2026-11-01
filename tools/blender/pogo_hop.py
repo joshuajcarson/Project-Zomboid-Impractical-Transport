@@ -205,7 +205,13 @@ def blend(a, b, w):
         out[n] = Matrix.Translation(a[n].translation.lerp(b[n].translation, w)) @ q.to_matrix().to_4x4()
     return out
 
-write_clip("Bob_PogoHop", samples, FRAMES, DISTANCE)
+# The nodes' m_SpeedScale variables do not change how fast the rider moves (measured 2026-10-31); the travel per hop baked into a clip does. So speed comes
+# from separate clips: three gaits x three tiers (tier 0 normal, 1 and 2 slowed by terrain, tiredness or engine slowdown; the Lua picks the tier each tick).
+GAITS = {"": 1.0, "Run": 1.7, "Sprint": 2.2}      # clip name suffix -> travel factor (walk 0.8 tiles/s, run measured 1.55x in game)
+TIERS = {"": 1.0, "T1": 0.6, "T2": 0.3}
+for gait, gf in GAITS.items():
+    for tier, tf in TIERS.items():
+        write_clip(f"Bob_PogoHop{gait}{tier}", samples, FRAMES, DISTANCE * gf * tf)
 MOUNT_FRAMES = 24     # 0.8 s from standing with the stick in hand to the first crouch of a hop; the dismount is the same motion backwards
 write_clip("Bob_PogoMount", {0: idle_local, MOUNT_FRAMES // 2: blend(idle_local, samples[0], 0.5), MOUNT_FRAMES: samples[0]}, MOUNT_FRAMES, 0)
 write_clip("Bob_PogoDismount", {0: samples[FRAMES], MOUNT_FRAMES // 2: blend(samples[FRAMES], idle_local, 0.5), MOUNT_FRAMES: idle_local}, MOUNT_FRAMES, 0)

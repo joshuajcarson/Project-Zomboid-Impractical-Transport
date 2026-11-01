@@ -6,6 +6,8 @@ Fallback (the likely outcome): the single static model that exists today (`PogoS
 
 Written before any test ran. The experiment uses separate throw-away items (`PogoSplitUpper`, `PogoSplitLower`), so the real `PogoStick` is untouched until the verdict.
 
+> Amended before any test ran (2026-10-31): the split is the foot and tip rod (secondary hand) versus everything else (primary hand), because on a real pogo stick the pads stay with the rider and the foot rod retracts. Criteria 7 and 8 originally measured handlebar-to-pads, which does not change in this design.
+
 ## Acceptance criteria (all must pass to keep two models)
 
 **A. It works as an item pair (hard requirements)**
@@ -19,8 +21,8 @@ Written before any test ran. The experiment uses separate throw-away items (`Pog
 6. Mount and dismount clips still play (log shows `riding=true`, then `riding=false`).
 
 **C. The point of the experiment: the spring visibly compresses**
-7. In a burst of at least 8 screenshots while hopping on the dirt field (`python scripts/shoot.py burst`), the distance from the handlebar to the pads varies by at least 20% between the longest and shortest frame, judged on the contact sheet and by measuring the pixel distance between the handlebar and pad colours in the frames.
-8. The foot tip does not leave the ground in the compressed frames more than it does in the single-model stick, and the lower part never separates from the upper part by a visible gap at rest.
+7. In a burst of at least 8 screenshots while hopping on the dirt field (`python scripts/shoot.py burst`), the distance from the foot tip to the pads varies by at least 20% of the fully extended tip-to-pad distance between the longest and shortest frame, judged on the contact sheet and by measuring the pixel distance between the tip and the pad colours in the frames.
+8. The foot tip does not leave the ground in the compressed frames more than it does in the single-model stick, and the foot part never separates from the main part by a visible gap at rest.
 
 **D. Cost is acceptable (judgement, written down with the verdict)**
 9. Extra Lua stays under about 60 lines, with no new per-tick cost beyond the existing handler.

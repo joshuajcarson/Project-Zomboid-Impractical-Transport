@@ -116,8 +116,67 @@ end
 
 -- smokestate: log the gait flags and the pogo speed variables the anim nodes read
 commands.smokestate = function(p, a)
+    print("STATE tier=" .. tostring(p:getVariableString("PogoTier")) .. " endurance=" .. tostring(p:getStats():get(CharacterStat.ENDURANCE)))
+    print("STATE canSprint=" .. tostring(pcall(function() return p:canSprint() end) and p:canSprint()) .. " sprintDown=" .. tostring(pcall(function() return p:isSprintButtonDown() end) and p:isSprintButtonDown()) .. " runDown=" .. tostring(pcall(function() return p:isRunButtonDown() end) and p:isRunButtonDown()))
     print(string.format("STATE running=%s sprinting=%s moving=%s walkVar=%s runVar=%s sprintVar=%s node=%s",
         tostring(p:isRunning()), tostring(p:isSprinting()), tostring(p:isPlayerMoving()), tostring(p:getVariableFloat("PogoWalkSpeed", -1)),
         tostring(p:getVariableFloat("PogoRunSpeed", -1)), tostring(p:getVariableFloat("PogoSprintSpeed", -1)), tostring(p:getAnimationDebug()):gsub("%s+", " "):sub(1, 160)))
     return true, "logged"
+end
+
+-- smokevar|Name|value (the harness splits arguments at '|' into a.a, a.b): pin an animation variable after the mod's own handler each update (value "off" releases it); experiments with the speed variables
+local pinned = {}
+local pinHandler
+commands.smokevar = function(p, a)
+    local name, value = a and a.a, (a and a.b) or ""
+    pinned[name] = value ~= "" and (tonumber(value) or value) or nil      -- numbers stay numbers, anything else is a text value
+    if not pinHandler then
+        pinHandler = function(player)
+            if player ~= p then return end
+            for n, v in pairs(pinned) do player:setVariable(n, v) end
+        end
+        Events.OnPlayerUpdate.Add(pinHandler)
+    end
+    return true, "pinned " .. tostring(name) .. "=" .. tostring(pinned[name])
+end
+
+-- smokeprofile|field|value: change a field of the pogo stick's profile table live (e.g. walk|2.0); experiments only, a restart restores the file's values
+commands.smokeprofile = function(p, a)
+    local field, value = a and a.a, a and a.b
+    local profile = ImpracticalTransport.getProfile(p)
+    if not profile then return false, "no profile (stick not in hand)" end
+    profile[field] = tonumber(value)
+    return true, field .. "=" .. tostring(profile[field])
+end
+
+-- smokeanim: log the engine's full animation debug text for the player (which node plays, its track, speed and variables)
+commands.smokeanim = function(p, a)
+    print("ANIM " .. tostring(p:getAnimationDebug()):gsub("%s+", " "))
+    return true, "logged"
+end
+
+-- smokespeeds: log the engine's movement speed numbers
+commands.smokespeeds = function(p, a)
+    local function try(f) local ok, v = pcall(f); return ok and tostring(v) or "ERR" end
+    print("SPEEDS moveSpeed=" .. try(function() return p:getMoveSpeed() end) .. " speedMod=" .. try(function() return p:getSpeedMod() end)
+        .. " movementSpeed=" .. try(function() return p:getMovementSpeed() end) .. " baseSpeed=" .. try(function() return p:calculateBaseSpeed() end)
+        .. " slowFactor=" .. try(function() return p:getSlowFactor() end) .. " runMod=" .. try(function() return p:getRunSpeedModifier() end)
+        .. " walkVar=" .. try(function() return p:getVariableFloat("WalkSpeed", -1) end))
+    return true, "logged"
+end
+-- smokespeedmod|value: set the engine speed modifier (experiment)
+commands.smokespeedmod = function(p, a) p:setSpeedMod(tonumber(a and a.a) or 1); return true, "speedMod " .. tostring(p:getSpeedMod()) end
+
+-- smokeengine|call|value: set one engine speed control for experiments: movespeed, slowfactor (with a long slow timer)
+commands.smokeengine = function(p, a)
+    local call, value = a and a.a, tonumber(a and a.b)
+    if call == "movespeed" then p:setMoveSpeed(value)
+    elseif call == "slowfactor" then p:setSlowTimer(100000); p:setSlowFactor(value) end
+    return true, call .. "=" .. tostring(value)
+end
+
+-- smokeendurance|value: set the endurance stat (0..1); with the pogo this moves the pace tier (below 0.5 tiredness slows the hop)
+commands.smokeendurance = function(p, a)
+    p:getStats():set(CharacterStat.ENDURANCE, tonumber(a and a.a) or 1)
+    return true, "endurance " .. tostring(p:getStats():get(CharacterStat.ENDURANCE))
 end
