@@ -28,8 +28,16 @@ def client_box(h):
     u.GetClientRect(h, ctypes.byref(r)); u.ClientToScreen(h, ctypes.byref(pt))
     return (pt.x, pt.y, pt.x + r.right, pt.y + r.bottom)
 
+def wake(h):
+    """A window that is in front but still paints white has lost its repaint: minimise and restore it."""
+    u.ShowWindow(h, 6); time.sleep(1); u.ShowWindow(h, 9)
+    u.keybd_event(0x12, 0, 0, 0); u.keybd_event(0x12, 0, 2, 0); u.SetForegroundWindow(h); time.sleep(2.5)
+
 def grab(h):
-    return ImageGrab.grab(bbox=client_box(h), all_screens=True)
+    img = ImageGrab.grab(bbox=client_box(h), all_screens=True)
+    if img.convert("L").resize((1, 1)).getpixel((0, 0)) > 250:      # solid white: not painted
+        wake(h); img = ImageGrab.grab(bbox=client_box(h), all_screens=True)
+    return img
 
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""

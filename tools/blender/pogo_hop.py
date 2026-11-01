@@ -49,6 +49,7 @@ hip_z = wrest("Bip01_L_Thigh").z
 sh_off = wrest("Bip01_L_UpperArm").z - hip_z
 ankle = wrest("Bip01_L_Foot").z
 grip_z, pad_z = 0.92 * s, 0.3 * s
+STAND_LIFT = float(os.environ.get("STAND_LIFT", 0.0))     # pelvis lift for the rest pose: 0 = the survivor's own standing height
 base_lift = (grip_z + 0.8 * Larm - sh_off) - hip_z     # hands hang 0.8 of an arm length below the shoulders at the grips (nearly straight arms, knees moderately bent)
 
 # --- two-bone solver (armature space), same method as pogo_rider.py
@@ -62,7 +63,8 @@ def aim(name, child, new_dir, head):
     bpy.context.view_layer.update()
     return q
 
-def limb(root, mid, end, target_world, pole_world, foot):
+def limb(root, mid, end, target_world, pole_world, foot, Rm=None):
+    Rm = Rm if Rm is not None else globals()["Rm"]
     T, pole = Mi @ target_world, Mi.to_3x3() @ pole_world
     Mp, Ep = rest[mid].translation, rest[end].translation
     Hp = pb[root].matrix.translation        # the hip/shoulder after the pelvis lift
@@ -86,23 +88,25 @@ LEAN = math.radians(float(os.environ.get("LEAN_DEG", 12)))
 R = Matrix.Rotation(LEAN, 3, up.cross(fwd))                 # (up x fwd) x up = fwd, so a positive turn tips the top forward (`side` may be flipped, do not use it)
 Rm = Mi.to_3x3() @ R @ arm.matrix_world.to_3x3()            # the same turn in armature space
 
-def pose(stick_lift, sink):
+def pose(stick_lift, sink, standing=False):
+    """standing: both feet on the ground astride the stick and no lean, hands on the grips (the rest pose); otherwise feet on the pads and the forward lean (the hop)."""
+    R_, Rm_ = (Matrix.Identity(3), Mi.to_3x3() @ arm.matrix_world.to_3x3()) if standing else (R, Rm)
     for p in pb: p.matrix_basis = Matrix.Identity(4)
     bpy.context.view_layer.update()
-    lift = base_lift + stick_lift - sink
+    lift = (STAND_LIFT if standing else base_lift) + stick_lift - sink
     P = up * stick_lift                                     # pivot: the tip of the stick
-    tilt = lambda v: P + R @ (v - P)
+    tilt = lambda v: P + R_ @ (v - P)
     pelvis = tilt(arm.matrix_world @ rest["Bip01"].translation + up * lift)
-    pb["Bip01"].matrix = Matrix.Translation(Mi @ pelvis) @ (Rm @ rest["Bip01"].to_3x3()).to_4x4()
+    pb["Bip01"].matrix = Matrix.Translation(Mi @ pelvis) @ (Rm_ @ rest["Bip01"].to_3x3()).to_4x4()
     bpy.context.view_layer.update()
     for pre, sgn in (("L_", 1), ("R_", -1)):
-        foot_t = tilt(side * sgn * 0.17 * s + up * (pad_z + ankle + stick_lift))
+        foot_t = tilt(side * sgn * (0.12 if standing else 0.17) * s + up * ((0 if standing else pad_z) + ankle + stick_lift))
         # the model hangs off Bip01_Prop1/2, which sit a little off the hand bone: put THAT bone on the grip, so the hand goes where it must for the prop to land there
         hand = f"Bip01_{pre}Hand"
-        prop_off = arm.matrix_world.to_3x3() @ (Rm @ idle_hand[hand]) @ next(r for (h, _), r in prop_rel.items() if h == hand).translation
+        prop_off = arm.matrix_world.to_3x3() @ (Rm_ @ idle_hand[hand]) @ next(r for (h, _), r in prop_rel.items() if h == hand).translation
         hand_t = tilt(side * sgn * 0.14 * s + up * (grip_z + stick_lift)) - prop_off
-        limb(f"Bip01_{pre}Thigh", f"Bip01_{pre}Calf", f"Bip01_{pre}Foot", foot_t, R @ (fwd + side * sgn * 0.15), True)
-        limb(f"Bip01_{pre}UpperArm", f"Bip01_{pre}Forearm", f"Bip01_{pre}Hand", hand_t, R @ (-fwd * 0.5 + side * sgn * 0.3 - up * 0.8), False)
+        limb(f"Bip01_{pre}Thigh", f"Bip01_{pre}Calf", f"Bip01_{pre}Foot", foot_t, R_ @ (fwd + side * sgn * 0.15), True, Rm_)
+        limb(f"Bip01_{pre}UpperArm", f"Bip01_{pre}Forearm", f"Bip01_{pre}Hand", hand_t, R_ @ (-fwd * 0.5 + side * sgn * 0.3 - up * 0.8), False, Rm_)
     for (h, pr), rel in prop_rel.items():
         # position follows the leaned hand, orientation stays the Bob_Idle one: in game the stick's lean is set by the item's attachment rotate (see
         # ImpracticalTransport_models.txt), because a lean carried by this bone showed up sideways
@@ -115,6 +119,7 @@ def pose(stick_lift, sink):
     return local
 
 samples = {fr: pose(lift, sink) for fr, lift, sink in KEYS}
+stand = pose(0.0, 0.0, standing=True)
 
 # --- write the .X clip
 def fmt(vals): return ",".join(f"{v:.6f}" for v in vals)
@@ -213,8 +218,9 @@ for gait, gf in GAITS.items():
     for tier, tf in TIERS.items():
         write_clip(f"Bob_PogoHop{gait}{tier}", samples, FRAMES, DISTANCE * gf * tf)
 MOUNT_FRAMES = 24     # 0.8 s from standing with the stick in hand to the first crouch of a hop; the dismount is the same motion backwards
-write_clip("Bob_PogoMount", {0: idle_local, MOUNT_FRAMES // 2: blend(idle_local, samples[0], 0.5), MOUNT_FRAMES: samples[0]}, MOUNT_FRAMES, 0)
-write_clip("Bob_PogoDismount", {0: samples[FRAMES], MOUNT_FRAMES // 2: blend(samples[FRAMES], idle_local, 0.5), MOUNT_FRAMES: idle_local}, MOUNT_FRAMES, 0)
+write_clip("Bob_PogoIdle", {0: stand, 12: stand}, 12, 0)      # the rest pose: standing, both hands on the grips, the stick upright in front
+write_clip("Bob_PogoMount", {0: stand, MOUNT_FRAMES // 2: blend(stand, samples[0], 0.5), MOUNT_FRAMES: samples[0]}, MOUNT_FRAMES, 0)
+write_clip("Bob_PogoDismount", {0: samples[FRAMES], MOUNT_FRAMES // 2: blend(samples[FRAMES], stand, 0.5), MOUNT_FRAMES: stand}, MOUNT_FRAMES, 0)
 
 # --- round-trip: read the clip back with the game-format reader and render frames to check the motion
 bpy.ops.wm.read_factory_settings(use_empty=True)
