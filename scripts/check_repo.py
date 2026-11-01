@@ -26,6 +26,11 @@ if compile_lua:
         result = compile_lua(f.read_text(encoding="utf-8"))      # a function when it compiles; (nil, message) when it does not
         isinstance(result, tuple) and bad(f"{f.relative_to(ROOT)}: Lua syntax: {result[1]}")
 
+import ast
+for f in [*ROOT.glob("scripts/*.py"), *ROOT.glob("tools/**/*.py")]:
+    try: ast.parse(f.read_text(encoding="utf-8"))
+    except SyntaxError as e: bad(f"{f.relative_to(ROOT)}: Python syntax error line {e.lineno}")
+
 clips = {f.stem for f in (MEDIA / "anims_X").rglob("*.X")}
 for f in (MEDIA / "anims_X").rglob("*.X"):
     f.read_text(encoding="latin-1").startswith("xof 0303txt") or bad(f"{f.relative_to(ROOT)}: not a text DirectX file")
