@@ -26,4 +26,7 @@ Copy or symlink `Contents/mods/ImpracticalTransport` into your Project Zomboid `
 - Development journal (decisions, test results): [docs/dev/journal.md](docs/dev/journal.md)
 - Human test queue: [docs/human-testing-queue.md](docs/human-testing-queue.md)
 
-Licence: see [LICENSE](LICENSE). The mod ships no game assets; generated models and animations are built from scripts in `tools/` and read the game's own files from your install only to build previews.
+## Licence and credit
+Code and original models are MIT licensed ([LICENSE](LICENSE)). Animation clips and the skates model embed the survivor skeleton (bone names and bind offsets) taken from Project Zomboid, which remains The Indie Stone's; this is used under their [Terms](https://projectzomboid.com/blog/support/terms-conditions/) and [Modding Policy](https://projectzomboid.com/blog/modding-policy/). Details in [NOTICE.md](NOTICE.md). No game art, audio, textures or code are included.
+
+> Thanks to The Indie Stone for creating Project Zomboid (https://projectzomboid.com/), which made this possible. This is an unofficial fan production for non-commercial purposes made under the Indie Stone Terms (https://projectzomboid.com/blog/support/terms-conditions/)
