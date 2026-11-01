@@ -30,6 +30,7 @@ local PROFILES = {
     -- roller skates are WORN (shoes slot), not held: no aiming block, no mount clips; speed and falls like the others
     ["ImpracticalTransport.RollerSkates"] = {
         name = "Skates", worn = true, mount = false,
+        paved = 2.3, tierFast = 1.4,      -- on pavement: speed x2.3 (about 10 percent faster than walking), the "F" clips
         speed = { [""] = 0.7, Run = 1.0 },
         stopFall = { walk = 0.05, run = 0.25 },      -- chance that stopping ends in a fall (winded riders and bad ground make it likelier)
         coast = { walk = 0.6, run = 1.2 },      -- seconds the rider keeps gliding after the keys are released: the length of Bob_SkateCoast / Bob_SkateCoastRun (tools/blender/skates_glide.py), which start at the skating speed and ease to zero
@@ -66,6 +67,11 @@ local SURFACES = {
     { "gravel", speed = 0.70, stumble = 2.0 },
     { "dirt",   speed = 0.85, stumble = 1.5 },
     { "grass",  speed = 0.90, stumble = 1.3 },
+    -- paved ground (labels seen at the parking lot: "road_07 blends_street_01_96"): neutral for most transports; a profile with `paved` (skates) gets a speed bonus
+    { "road_",  speed = 1.0, stumble = 1.0, paved = true },
+    { "blends_street", speed = 1.0, stumble = 1.0, paved = true },
+    { "asphalt", speed = 1.0, stumble = 1.0, paved = true },
+    { "concrete", speed = 1.0, stumble = 1.0, paved = true },
 }
 local BUSH_STUMBLE = 4.0        -- tripping multiplier on a bush or tree square, on the square ahead, or inside vanilla's "in trees" state
 local NEUTRAL = { speed = 1, stumble = 1 }
@@ -155,7 +161,7 @@ local stallUntil = {}
 local coastUntil = {}
 local coastFrom = {}
 local wasMoving = {}
-local TIER_SPEED = { ["0"] = 1.0, ["1"] = 0.6, ["2"] = 0.3 }      -- what the T1 and T2 clips scale the travel by
+local TIER_SPEED = { ["0"] = 1.0, ["1"] = 0.6, ["2"] = 0.3, ["3"] = 2.3 }      -- what the T1 and T2 clips scale the travel by (3 = the fast clips on pavement, skates only)
 local STUMBLE_COOLDOWN_SECONDS = 20
 local TRANSITION_SECONDS = 0.8     -- length of Bob_PogoMount / Bob_PogoDismount (24 frames at 30 fps)
 
@@ -289,8 +295,8 @@ Events.OnPlayerUpdate.Add(function(player)
     -- Speed comes from which clip plays, not from a playback variable (those do nothing, see the README): the anim nodes pick a clip tier from PogoTier.
     -- Run and sprint have their own faster clips. Tier 0 is full pace, 1 and 2 are the slower clips for loose ground, a tired rider or a heavy slowdown.
     local gait = player:isSprinting() and "Sprint" or player:isRunning() and "Run" or ""
-    local pace = tired * terrain
-    local tier = pace >= profile.tier1 and "0" or pace >= profile.tier2 and "1" or "2"
+    local pace = tired * terrain * ((ground.paved and profile.paved) or 1)      -- skates only: pavement is where they beat walking
+    local tier = (profile.paved and pace >= profile.tierFast) and "3" or pace >= profile.tier1 and "0" or pace >= profile.tier2 and "1" or "2"
     player:setVariable(profile.name .. "Tier", tier)
     -- once a second while moving: every input to the slowdown and the speed it should produce, so a test can compare with the measured speed
     local nowMs = getTimestampMs()

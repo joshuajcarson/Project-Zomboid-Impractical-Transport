@@ -115,7 +115,7 @@ CYCLE = {"": 36, "Run": 24}                       # frames per stride cycle (bot
 # target speeds in tiles/s: worse than walking (about 1.45 tiles/s bare), like every transport in the mod
 SPEED = {"": 0.7, "Run": 1.0}
 TILES_PER_TRAVEL_SECOND = 1.45
-TIERS = {"": 1.0, "T1": 0.6, "T2": 0.3}
+TIERS = {"": 1.0, "T1": 0.6, "T2": 0.3, "F": 2.3}      # F: the fast clips used on pavement (the Lua picks tier "3"), about 10 percent faster than walking
 import clipio
 write_clip, blend = clipio.make(order, OUT_X.parent)
 for kind, frames in CYCLE.items():
