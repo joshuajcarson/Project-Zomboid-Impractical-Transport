@@ -59,6 +59,11 @@ Then: stilts, inflatable ball with handles.
 
 Human-only checks stay in the testing queue below.
 
+## Backlog
+- Roller skates: the trade-off design (faster than walking on streets, terrible elsewhere, interferes with driving, climbing, vaulting and the other transports), the full list of ways skates can be a net negative where it makes logical sense, and making stopping hard (coasting, falls on stops) are written up in `docs/design/roller-skates.md`.
+- Skates still to build: the skinned model on the feet, the coast and stop falls, the street speed bonus and the surface table.
+- Inflatable ball with handles, then stilts.
+
 ## Resume here (written 2026-10-31 when the user needed the PC back)
 Branch `claude/zomboid-inefficient-vehicles-mod-e27194`; the game and server are stopped; everything is committed. Pogo stick: finished apart from the human checks in the testing queue below.
 **Tricycle (in progress, nothing of it has been seen in game yet):** model/texture/icon (`tools/blender/tricycle.py`), seated pedalling clips `Bob_TrikeRide{,Run}{,T1,T2}` and `Bob_TrikeIdle` (`tools/blender/tricycle_ride.py`, Blender preview looks right: grown rider, knees up, hands on the grips), item `Tricycle`, model `Tricycle_3d`, Lua profile (`name = "Trike"`, no mount clips), nodes from `tools/make_gait_nodes.py` (`TrikeActive`/`TrikeTier`). Next steps:
