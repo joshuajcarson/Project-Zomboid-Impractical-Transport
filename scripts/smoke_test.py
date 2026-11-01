@@ -35,6 +35,7 @@ def static():
             any((media / "models_X" / f"{mesh}{ext}").exists() for ext in (".X", ".x", ".fbx")) or fail(f"{s.name}: missing models_X/{mesh}")
         for tex in re.findall(rf"texture\s*=\s*(\S*{MOD_ID}\S*?)\s*,", text):
             (media / "textures" / f"{tex}.png").exists() or fail(f"{s.name}: missing textures/{tex}.png")
+    subprocess.run([sys.executable, str(HERE / "scripts" / "check_repo.py")]).returncode and fail("scripts/check_repo.py failed (see above)")      # the same checks CI runs
     print("static ok")
 
 def stage_server():

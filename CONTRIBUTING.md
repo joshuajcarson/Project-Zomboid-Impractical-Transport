@@ -2,8 +2,10 @@
 
 Flow: branch from `main` (`claude/...` or `feature/...`), commit small verified steps, push, open a pull request into `main`, squash or merge it, delete the branch.
 
+One-time setup per clone: `pip install -r requirements-dev.txt` (lupa, an embedded Lua 5.1, for the Lua syntax check) and `git config core.hooksPath .githooks` (a pre-push hook that runs the same checks as CI, so a failing push is stopped locally).
+
 Before every push
-1. `python scripts/smoke_test.py static` and `python scripts/check_repo.py` (seconds, also run by CI on the pull request).
+1. `python scripts/smoke_test.py static` (it runs `scripts/check_repo.py` too; seconds; CI runs the same on the pull request, and the pre-push hook runs them automatically).
 2. If anything under `Contents/` changed: `python <RL repo>/scripts/cleanup.py` then `python scripts/smoke_test.py play` (about 10 minutes, needs the game, the RL harness repo and a free PC). Paste its output in the PR.
 3. After a merge, delete the branch and start the next one from the new `main` so history does not fork again.
 

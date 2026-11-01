@@ -1,8 +1,8 @@
 """Repo checks that need no game (run by CI and before every push):
   python scripts/check_repo.py
-XML well-formed, Lua parses (luac or lua if installed), .X files have the DirectX header, every anim node names a clip that exists, every clip that a
+XML well-formed, Lua compiles (Lua 5.1 through lupa), .X files have the DirectX header, every anim node names a clip that exists, every clip that a
 node or the Lua names is shipped, no conflict markers, and the mod's items point at textures that exist. Exit 0 = pass."""
-import pathlib, re, shutil, subprocess, sys
+import pathlib, re, sys
 import xml.etree.ElementTree as ET
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -14,14 +14,17 @@ for f in list(MEDIA.rglob("*.xml")):
     try: ET.parse(f)
     except ET.ParseError as e: bad(f"{f.relative_to(ROOT)}: not well-formed XML ({e})")
 
-lua = shutil.which("luac5.1") or shutil.which("luac") or shutil.which("lua5.1") or shutil.which("lua")
-if lua:
-    flag = ["-p"] if "luac" in lua else ["-e", "loadfile(arg[1])"]
+# Lua syntax: lupa embeds a real Lua 5.1 (the game's Kahlua is 5.1 too): pip install -r requirements-dev.txt. Compile only, nothing is run.
+try:
+    from lupa import lua51
+    compile_lua = lua51.LuaRuntime().eval("loadstring")
+except ImportError:
+    compile_lua = None
+    problems.append("lupa is not installed (pip install -r requirements-dev.txt): the Lua syntax check cannot run")
+if compile_lua:
     for f in [*MEDIA.rglob("*.lua"), ROOT / "scripts/smoke_bot.lua"]:
-        r = subprocess.run([lua, "-p", str(f)] if "luac" in lua else [lua, "-e", f"assert(loadfile([[{f}]]))"], capture_output=True, text=True)
-        r.returncode and bad(f"{f.relative_to(ROOT)}: Lua syntax: {r.stderr.strip()[:200]}")
-else:
-    print("note: no Lua interpreter found, skipping the Lua syntax check")
+        result = compile_lua(f.read_text(encoding="utf-8"))      # a function when it compiles; (nil, message) when it does not
+        isinstance(result, tuple) and bad(f"{f.relative_to(ROOT)}: Lua syntax: {result[1]}")
 
 clips = {f.stem for f in (MEDIA / "anims_X").rglob("*.X")}
 for f in (MEDIA / "anims_X").rglob("*.X"):
