@@ -1,0 +1,209 @@
+-- Appended to the RL harness's client-side rl_bot_dev.lua by smoke_test.py (the `commands` table and `log` come from there).
+-- smokeoutfit: put on basic clothes. A server-side AddItem never reaches a real client, so this runs on the client.
+commands.smokeoutfit = function(p, a)
+    local worn = 0
+    for _, t in ipairs({ "Base.Tshirt_DefaultTEXTURE", "Base.Trousers_DefaultTEXTURE", "Base.Socks_Ankle", "Base.Shoes_TrainerTINT" }) do
+        local ok, err = pcall(function()
+            local it = p:getInventory():AddItem(t)
+            p:setWornItem(it:getBodyLocation(), it)
+            worn = worn + 1
+        end)
+        if not ok then log("smokeoutfit " .. t .. ": " .. tostring(err)) end
+    end
+    return true, "worn " .. worn
+end
+
+-- smokechat|/command ...: type an admin chat command (e.g. /addvehicle "Base.Tricycle" "Smoke1"); needs the admin role (server `admin|user`).
+-- shortcut: drives ISChat's own entry path; unverified in B42.21, logs the error if the UI shape changed.
+commands.smokechat = function(p, a)
+    local ok, err = pcall(function()
+        ISChat.instance.textEntry:setText((a and a.a) or "")
+        ISChat.onCommandEntered()
+    end)
+    if not ok then log("smokechat failed: " .. tostring(err)) end
+    return ok, tostring(err or "sent")
+end
+
+-- the harness re-equips its weapon whenever the hands are empty; turn that off so items can be put away by hand
+RL.autoRearm = false
+-- smokeunequipaction: put the held item away the way a player does (a real timed action); smokehands then reports the result in the log
+commands.smokeunequipaction = function(p, a)
+    local item = p:getPrimaryHandItem()
+    if not item then return false, "nothing held" end
+    ISTimedActionQueue.add(ISUnequipAction:new(p, item, 50))
+    return true, "queued"
+end
+commands.smokehands = function(p, a)
+    return p:getPrimaryHandItem() == nil, "hands " .. (p:getPrimaryHandItem() and "full" or "empty")
+end
+
+-- smokeequipaction|Type: equip like a player (a real timed action, which the server validates against ITS copy of the item)
+commands.smokeequipaction = function(p, a)
+    local item = p:getInventory():getFirstTypeRecurse((a and a.a) or "PogoStick")
+    if not item then return false, "not in inventory" end
+    ISTimedActionQueue.add(ISEquipWeaponAction:new(p, item, 50, true, item:isTwoHandWeapon()))
+    return true, "queued"
+end
+
+-- smokeclear|Type: drop every copy of an item from this client's inventory (hands are left to real actions) (earlier runs left client-only copies that the server rejects)
+commands.smokeclear = function(p, a)
+    p:getInventory():RemoveAll((a and a.a) or "PogoStick")
+    return true, "cleared"
+end
+
+-- smokestumble: force the stumble the rider would otherwise get by chance (the mod's own function, so its variables are the ones tested)
+commands.smokestumble = function(p, a)
+    local ok, err = pcall(ImpracticalTransport.stumble, p)
+    return ok, tostring(err or "stumbled")
+end
+
+-- smokebones|ticks: log the model-space transform of the bones that matter for the pogo pose, once per update for `ticks` updates.
+-- Lines read "BONES <tick> <bone> <matrix text>" (translation = the 4th column); the model space is the character's own frame.
+-- shortcut: depends on AnimationPlayer:getSkinningBoneIndex / getModelTransformAt being callable from Lua; each failure is logged once.
+local BONES = { "Bip01_Pelvis", "Bip01_Head", "Bip01_R_Hand", "Bip01_L_Hand", "Bip01_Prop1", "Bip01_Prop2", "Bip01_R_Foot", "Bip01_L_Foot" }
+commands.smokebones = function(p, a)
+    local left, tick = tonumber(a and a.a) or 60, 0
+    local failed = {}
+    local function sample(player)
+        if player ~= p then return end
+        tick = tick + 1
+        local ok, err = pcall(function()
+            local ap = player:getAnimationPlayer()
+            for _, name in ipairs(BONES) do
+                local idx = ap:getSkinningBoneIndex(name, -1)
+                if idx >= 0 then
+                    print("BONES " .. tick .. " " .. name .. " " .. tostring(ap:getModelTransformAt(idx)):gsub("%s+", " "))
+                elseif not failed[name] then failed[name] = true; print("BONES missing bone " .. name) end
+            end
+        end)
+        if not ok and not failed.all then failed.all = true; print("BONES failed: " .. tostring(err)) end
+        if tick >= left or failed.all then Events.OnPlayerUpdate.Remove(sample) end
+    end
+    Events.OnPlayerUpdate.Add(sample)
+    return true, "sampling " .. left
+end
+
+-- smokeview|zoomsteps: hide every UI panel and zoom the camera in (negative steps zoom out), so a screen capture shows the rider and nothing else
+commands.smokeview = function(p, a)
+    local steps = tonumber(a and a.a) or 6
+    local ok, err = pcall(function()
+        ISUIHandler.setVisibleAllUI(false)
+        local before = getCore():getZoom(0)
+        for _ = 1, math.abs(steps) do getCore():doZoomScroll(0, steps > 0 and -1 or 1) end
+        print("smokeview zoom " .. tostring(before) .. " -> " .. tostring(getCore():getZoom(0)))
+    end)
+    return ok, tostring(err or "view set")
+end
+-- smokeui: bring the UI back
+commands.smokeui = function(p, a) ISUIHandler.setVisibleAllUI(true); return true, "ui on" end
+
+-- smokegait|walk|run|sprint: hold that gait every update (stands in for the run/sprint keys, which the bot cannot press)
+local gaitHandler
+commands.smokegait = function(p, a)
+    local gait = (a and a.a) or "walk"
+    if gaitHandler then Events.OnPlayerUpdate.Remove(gaitHandler); gaitHandler = nil end
+    if gait ~= "walk" then
+        gaitHandler = function(player)
+            if player ~= p then return end
+            player:setRunning(gait == "run"); player:setSprinting(gait == "sprint")
+        end
+        Events.OnPlayerUpdate.Add(gaitHandler)
+    else
+        p:setRunning(false); p:setSprinting(false)
+    end
+    return true, "gait " .. gait
+end
+
+-- smokestate: log the gait flags and the pogo speed variables the anim nodes read
+commands.smokestate = function(p, a)
+    print("STATE tier=" .. tostring(p:getVariableString("PogoTier")) .. " endurance=" .. tostring(p:getStats():get(CharacterStat.ENDURANCE)))
+    print("STATE canSprint=" .. tostring(pcall(function() return p:canSprint() end) and p:canSprint()) .. " sprintDown=" .. tostring(pcall(function() return p:isSprintButtonDown() end) and p:isSprintButtonDown()) .. " runDown=" .. tostring(pcall(function() return p:isRunButtonDown() end) and p:isRunButtonDown()))
+    print(string.format("STATE running=%s sprinting=%s moving=%s walkVar=%s runVar=%s sprintVar=%s node=%s",
+        tostring(p:isRunning()), tostring(p:isSprinting()), tostring(p:isPlayerMoving()), tostring(p:getVariableFloat("PogoWalkSpeed", -1)),
+        tostring(p:getVariableFloat("PogoRunSpeed", -1)), tostring(p:getVariableFloat("PogoSprintSpeed", -1)), tostring(p:getAnimationDebug()):gsub("%s+", " "):sub(1, 160)))
+    return true, "logged"
+end
+
+-- smokevar|Name|value (the harness splits arguments at '|' into a.a, a.b): pin an animation variable after the mod's own handler each update (value "off" releases it); experiments with the speed variables
+local pinned = {}
+local pinHandler
+commands.smokevar = function(p, a)
+    local name, value = a and a.a, (a and a.b) or ""
+    pinned[name] = value ~= "" and (tonumber(value) or value) or nil      -- numbers stay numbers, anything else is a text value
+    if not pinHandler then
+        pinHandler = function(player)
+            if player ~= p then return end
+            for n, v in pairs(pinned) do player:setVariable(n, v) end
+        end
+        Events.OnPlayerUpdate.Add(pinHandler)
+    end
+    return true, "pinned " .. tostring(name) .. "=" .. tostring(pinned[name])
+end
+
+-- smokeprofile|field|value: change a field of the pogo stick's profile table live (e.g. walk|2.0); experiments only, a restart restores the file's values
+commands.smokeprofile = function(p, a)
+    local field, value = a and a.a, a and a.b
+    local profile = ImpracticalTransport.getProfile(p)
+    if not profile then return false, "no profile (stick not in hand)" end
+    profile[field] = tonumber(value)
+    return true, field .. "=" .. tostring(profile[field])
+end
+
+-- smokeanim: log the engine's full animation debug text for the player (which node plays, its track, speed and variables)
+commands.smokeanim = function(p, a)
+    print("ANIM " .. tostring(p:getAnimationDebug()):gsub("%s+", " "))
+    return true, "logged"
+end
+
+-- smokespeeds: log the engine's movement speed numbers
+commands.smokespeeds = function(p, a)
+    local function try(f) local ok, v = pcall(f); return ok and tostring(v) or "ERR" end
+    print("SPEEDS moveSpeed=" .. try(function() return p:getMoveSpeed() end) .. " speedMod=" .. try(function() return p:getSpeedMod() end)
+        .. " movementSpeed=" .. try(function() return p:getMovementSpeed() end) .. " baseSpeed=" .. try(function() return p:calculateBaseSpeed() end)
+        .. " slowFactor=" .. try(function() return p:getSlowFactor() end) .. " runMod=" .. try(function() return p:getRunSpeedModifier() end)
+        .. " walkVar=" .. try(function() return p:getVariableFloat("WalkSpeed", -1) end))
+    return true, "logged"
+end
+-- smokespeedmod|value: set the engine speed modifier (experiment)
+commands.smokespeedmod = function(p, a) p:setSpeedMod(tonumber(a and a.a) or 1); return true, "speedMod " .. tostring(p:getSpeedMod()) end
+
+-- smokeengine|call|value: set one engine speed control for experiments: movespeed, slowfactor (with a long slow timer)
+commands.smokeengine = function(p, a)
+    local call, value = a and a.a, tonumber(a and a.b)
+    if call == "movespeed" then p:setMoveSpeed(value)
+    elseif call == "slowfactor" then p:setSlowTimer(100000); p:setSlowFactor(value) end
+    return true, call .. "=" .. tostring(value)
+end
+
+-- smokeendurance|value: set the endurance stat (0..1); with the pogo this moves the pace tier (below 0.5 tiredness slows the hop)
+commands.smokeendurance = function(p, a)
+    p:getStats():set(CharacterStat.ENDURANCE, tonumber(a and a.a) or 1)
+    return true, "endurance " .. tostring(p:getStats():get(CharacterStat.ENDURANCE))
+end
+
+-- smokenode|ticks: log which anim node plays, once per change, for `ticks` updates ("NODE <tick> <node> <clip> transition=<PogoTransition> active=<PogoActive>")
+commands.smokenode = function(p, a)
+    local left, tick, last = tonumber(a and a.a) or 300, 0, nil
+    local function sample(player)
+        if player ~= p then return end
+        tick = tick + 1
+        local d = tostring(player:getAnimationDebug())
+        local node, clip = d:match("Node: (%S+)"), d:match("Anim: (%S+)")
+        local key = tostring(node) .. "/" .. tostring(clip) .. "/" .. tostring(player:getVariableString("PogoTransition")) .. "/" .. tostring(player:getVariableBoolean("PogoActive"))
+        if key ~= last then last = key; print("NODE " .. tick .. " " .. key) end
+        if tick >= left then Events.OnPlayerUpdate.Remove(sample) end
+    end
+    Events.OnPlayerUpdate.Add(sample)
+    return true, "sampling " .. left
+end
+
+-- smokeinv: log the mod's items in the inventory
+commands.smokeinv = function(p, a)
+    local names, items = {}, p:getInventory():getItems()
+    for i = 0, items:size() - 1 do
+        local t = items:get(i):getFullType()
+        if t:find("ImpracticalTransport", 1, true) then names[#names + 1] = t:gsub("ImpracticalTransport%.", "") end
+    end
+    print("INV " .. table.concat(names, " "))
+    return true, "logged"
+end
