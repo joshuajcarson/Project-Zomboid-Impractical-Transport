@@ -17,7 +17,7 @@ PREVIEW = ROOT / "previews"; PREVIEW.mkdir(exist_ok=True)
 FPS = 30
 s = pogo_stick.GAME_UNITS_PER_METRE
 SWAY = 0.025 * s      # the rider rocks from side to side as the wheel turns
-WAVE = 0.06 * s      # the free arm waves for balance
+WAVE = 0.045 * s     # the arms drift gently for balance
 LEAN = math.radians(float(os.environ.get("UNI_LEAN_DEG", 3)))      # torso leans forward over the handlebar
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -88,14 +88,15 @@ seat_lift = (at(SADDLE).z + HIP_ABOVE_SADDLE) - hip_z
 Rlean = Matrix.Rotation(LEAN, 3, up.cross(fwd))   # a positive turn tips the top forward (see pogo_hop.py)
 Rlean_m = Mi.to_3x3() @ Rlean @ arm.matrix_world.to_3x3()
 
-def pose(phase, hold=0.0):
+def pose(phase, hold=0.0, drift=None):
     """phase: pedal angle in turns (0..1); the right pedal is ahead at 0. hold: 1 = the right hand is on the saddle handle, 0 = both arms out for balance."""
+    wp = phase if drift is None else drift      # the arms and the sway follow this phase (the legs follow `phase`): at rest only the arms drift
     for p in pb: p.matrix_basis = Matrix.Identity(4)
     bpy.context.view_layer.update()
     pivot = at(SADDLE) + up * HIP_ABOVE_SADDLE + fwd * (-0.02 * s)     # the hip: the torso turns about it
     tilt = lambda v: pivot + Rlean @ (v - pivot)
     pelvis = arm.matrix_world @ rest["Bip01"].translation
-    pelvis = pelvis + up * seat_lift + fwd * (-0.02 * s) + side * (SWAY * math.sin(2 * math.pi * phase))
+    pelvis = pelvis + up * seat_lift + fwd * (-0.02 * s) + side * (SWAY * math.sin(2 * math.pi * wp))
     pb["Bip01"].matrix = Matrix.Translation(Mi @ pelvis) @ (Rlean_m @ rest["Bip01"].to_3x3()).to_4x4()
     bpy.context.view_layer.update()
     for pre, sgn in (("L_", 1), ("R_", -1)):         # sgn: +1 = rider's left (side), -1 = right
@@ -105,7 +106,7 @@ def pose(phase, hold=0.0):
         foot_t = at(pedal) + up * ankle
         hand = f"Bip01_{pre}Hand"
         prop_off = arm.matrix_world.to_3x3() @ (Rlean_m @ idle_hand[hand]) @ next(r for (h, _), r in prop_rel.items() if h == hand).translation
-        out = at((-sgn * 0.50, 0.05, 0.95)) + side * (WAVE * math.sin(2 * math.pi * phase * 2 * (1 if sgn > 0 else -1))) + up * (WAVE * math.cos(2 * math.pi * phase))      # arm out
+        out = at((-sgn * 0.44, 0.05, 0.92)) + side * (WAVE * math.sin(2 * math.pi * wp * (1 if sgn > 0 else -1))) + up * (WAVE * math.cos(2 * math.pi * wp + (0 if sgn > 0 else math.pi / 2)))      # arm out
         if sgn < 0: grip = (1 - hold) * (out + prop_off) + hold * at((-sgn * tri.GRIP[0], tri.GRIP[1], tri.GRIP[2]))               # right hand: from the handle to out
         else: grip = out + prop_off
         limb(f"Bip01_{pre}Thigh", f"Bip01_{pre}Calf", f"Bip01_{pre}Foot", foot_t, Rlean @ (fwd * 1.0 + up * 0.7 + side * sgn * 0.25), True, Rlean_m)
@@ -133,16 +134,17 @@ for kind, frames in CYCLE.items():
     for tier, tf in TIERS.items():
         write_clip(f"Bob_UniRide{kind}{tier}", samples, frames, SPEED[kind] * (frames / FPS) / TILES_PER_TRAVEL_SECOND * tf)
 idle = pose(0.0)
-write_clip("Bob_UniIdle", {0: idle, 12: idle}, 12, 0)
+write_clip("Bob_UniIdle", {f: pose(0.0, drift=f / 60) for f in range(61)}, 60, 0)      # two seconds of gentle arm drift, no travel
 # mount: stand -> on the saddle with the right hand on the handle -> the arm goes out; dismount is the reverse (the loop starts at pose(0.0))
 MOUNT_FRAMES = 32
 stand = idle_local
 seated, out = pose(0.0, 1.0), pose(0.0, 0.0)
 write_clip("Bob_UniMount", {0: stand, 8: blend(stand, seated, 0.5), 16: seated, 32: out}, MOUNT_FRAMES, 0)
 write_clip("Bob_UniDismount", {0: out, 16: seated, 24: blend(seated, stand, 0.5), 32: stand}, MOUNT_FRAMES, 0)
-# wobble (the stall): the rider rocks wildly and flails an arm while the wheel goes nowhere, zero travel; the Lua plays it for a second or two
-SWAY, WAVE = 0.09 * s, 0.22 * s
-write_clip("Bob_UniSlip", {f: pose(2 * f / 24) for f in range(25)}, 24, 0)
+# wobble: the rider rocks and both arms flail while the wheel keeps going at half pace (no extra pedal spinning: a unicycle loses balance, it does not stall);
+# the Lua plays it for about a second, and sometimes the wobble ends in a fall
+SWAY, WAVE = 0.07 * s, 0.16 * s
+write_clip("Bob_UniSlip", {f: pose(f / 24) for f in range(25)}, 24, SPEED[""] * (24 / FPS) / TILES_PER_TRAVEL_SECOND * 0.5)
 
 # --- preview: read the ride clip back with the game-format reader, place the unicycle, render frames
 bpy.ops.wm.read_factory_settings(use_empty=True)

@@ -44,7 +44,7 @@ def build():
         rod((s * 0.05, HUB[1], HUB[2]), (s * 0.05, 0.0, 0.66), 0.012, CHROME, "Fork")                     # fork legs up to the crown
     rod((-0.05, 0.0, 0.66), (0.05, 0.0, 0.66), 0.012, CHROME, "Crown")
     rod((0, 0.0, 0.66), (0, -0.02, 0.74), 0.016, BLUE, "SeatPost")
-    box((0, -0.02, 0.75), (0.16, 0.24, 0.035), BLUE, "Saddle")
+    box((0, -0.02, 0.755), (0.08, 0.19, 0.02), BLUE, "Saddle")
     rod((0, 0.08, 0.77), (0, 0.14, 0.80), 0.014, CHROME, "HandleStem")
     box((0, 0.14, 0.80), (0.10, 0.03, 0.025), RED, "Handle")
 
@@ -77,8 +77,8 @@ def main():
     # inventory icon: the same transparent diagonal-free render as the other items, three-quarter view
     sc.render.film_transparent = True; sc.render.resolution_x = sc.render.resolution_y = 64
     sc.render.image_settings.color_mode = "RGBA"; cam.data.ortho_scale = 1.15
-    look = Vector((0, 0.0, 0.4)); cam.location = look + Vector((1.8, -2.2, 1.4)).normalized() * 6
-    cam.rotation_euler = (look - cam.location).to_track_quat("-Z", "Y").to_euler()
+    look = Vector((0, 0.0, 0.4)); cam.location = look + Vector((1.0, -0.15, 0.3)).normalized() * 6      # side on: the single wheel reads as a circle
+    cam.rotation_euler = ((look - cam.location).to_track_quat("-Z", "Y") @ Quaternion((0, 0, 1), math.radians(-35))).to_euler()      # rolled so it runs diagonally like the other icons
     sc.render.filepath = str(ICON); bpy.ops.render.render(write_still=True)
     print("exported", XFILE)
 

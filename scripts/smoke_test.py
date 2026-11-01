@@ -17,6 +17,8 @@ CAL = MOD / "42/media/scripts/ImpracticalTransport_calibration_items.txt"
 ITEMS += [f"ImpracticalTransport.{n}" for n in re.findall(r"item (PogoCal\d+)", CAL.read_text(encoding="utf-8") if CAL.exists() else "")]
 TRIKE_CAL = MOD / "42/media/scripts/ImpracticalTransport_trike_cal_items.txt"      # throw-away, see tools/make_trike_calibration.py
 ITEMS += [f"ImpracticalTransport.{n}" for n in re.findall(r"item (TrikeCal\d+)", TRIKE_CAL.read_text(encoding="utf-8") if TRIKE_CAL.exists() else "")]
+TILT_CAL = MOD / "42/media/scripts/ImpracticalTransport_tilt_cal_items.txt"      # throw-away, see tools/make_tilt_calibration.py
+ITEMS += [f"ImpracticalTransport.{n}" for n in re.findall(r"item (UniCal\d+)", TILT_CAL.read_text(encoding="utf-8") if TILT_CAL.exists() else "")]
 VEHICLES = []   # the tricycle vehicle script is parked while the transports move to held items
 ERR = re.compile(r"ERROR|Exception|WARN.*(script|model|texture)", re.I)
 

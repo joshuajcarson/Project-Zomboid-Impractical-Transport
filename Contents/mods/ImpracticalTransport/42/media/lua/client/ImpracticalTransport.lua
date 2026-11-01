@@ -21,7 +21,7 @@ local PROFILES = {
     ["ImpracticalTransport.Tricycle"] = {
         name = "Trike", mount = false,
         speed = { [""] = 0.58, Run = 0.78 },
-        slip = 0.03, slipRun = 2.0, slipSeconds = { 1.0, 2.0 },      -- pedal slip: chance per second, run multiplier, how long the trike goes nowhere
+        slip = 0.03, slipRun = 2.0, slipSeconds = { 1.0, 2.0 }, slipFall = 0.25,      -- pedal slip: chance per second, run multiplier, how long it lasts; slipFall: share of slips that tip over backwards
         tier1 = 0.8, tier2 = 0.5,
         drain = 0.003, drainRun = 1.5, drainSprint = 1.5,
         stumble = 0.0015, stumbleRun = 3.0, stumbleSprint = 3.0,      -- falling back off the seat is rare; slipping is the common failure
@@ -30,10 +30,10 @@ local PROFILES = {
     ["ImpracticalTransport.Unicycle"] = {
         name = "Uni", mount = true, transitionSeconds = 1.1,      -- Bob_UniMount / Bob_UniDismount are 32 frames
         speed = { [""] = 0.46, Run = 0.62 },
-        slip = 0.06, slipRun = 2.5, slipSeconds = { 0.8, 1.6 },
+        slip = 0.10, slipRun = 2.5, slipSeconds = { 0.8, 1.4 },      -- a wobble every ~10 s that usually recovers
         tier1 = 0.8, tier2 = 0.5,
         drain = 0.004, drainRun = 1.6, drainSprint = 1.6,
-        stumble = 0.006, stumbleRun = 4.0, stumbleSprint = 4.0,
+        stumble = 0.02, stumbleRun = 4.0, stumbleSprint = 4.0,      -- and a real fall about every 50 s
     },
 }
 
@@ -142,6 +142,11 @@ function ImpracticalTransport.slip(player, profile)
     stallUntil[player:getPlayerNum()] = getTimestampMs() + seconds * 1000
     player:setVariable(profile.name .. "Stall", true)
     print(string.format("ImpracticalTransport slip %.1fs", seconds))
+    -- a slip sometimes ends in a fall: likelier when running or winded
+    if profile.slipFall and not ImpracticalTransport.calm then
+        local endurance = player:getStats():get(CharacterStat.ENDURANCE)
+        if ZombRandFloat(0, 1) < profile.slipFall * (player:isRunning() and 1.5 or 1) * (1 + (1 - endurance)) then ImpracticalTransport.stumble(player) end
+    end
 end
 
 function ImpracticalTransport.getProfile(player)

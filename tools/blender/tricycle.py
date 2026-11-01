@@ -1,7 +1,7 @@
 """Build the child's tricycle from primitives and write models_X/ImpracticalTransport/Tricycle.X, its palette texture and an inventory icon.
   blender -b -P tools/blender/tricycle.py
 Blender metres, x sideways, y forward, z up; the origin is on the ground under the middle of the rear axle. The model is deliberately too small for an
-adult: the saddle is 0.44 m up and the pedals hang off the front wheel, so the rider sits with knees up around the handlebar."""
+adult: the saddle is 0.30 m up and the pedals hang off the front wheel, so the rider sits with knees up around the handlebar."""
 import bpy, math, pathlib, sys
 from mathutils import Vector, Quaternion
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
@@ -17,7 +17,7 @@ ICON = MEDIA / "textures/Item_Tricycle.png"
 HUB = (0.0, 0.40, 0.20)             # front wheel hub: the pedal cranks turn about it
 CRANK = 0.075                        # pedal circle radius
 PEDAL_X = 0.115                      # pedals sit this far to each side of the hub
-SEAT = (0.0, -0.12, 0.44)            # top of the saddle
+SEAT = (0.0, -0.12, 0.30)            # top of the saddle
 GRIP = (0.24, 0.30, 0.70)            # right handlebar grip (the left one mirrors it)
 
 
@@ -51,10 +51,10 @@ def build():
         rod((s * 0.24, 0.30, 0.70), (0.0, 0.30, 0.70), 0.011, CHROME, "Bar")                          # handlebar halves
         rod((s * 0.24, 0.30, 0.70), (s * 0.30, 0.30, 0.70), 0.020, YELLOW if s > 0 else WHITE, "Grip")
     rod((0, 0.34, 0.60), (0, 0.30, 0.70), 0.013, RED, "Stem")
-    rod((0, 0.33, 0.56), (0, -0.12, 0.30), 0.016, RED, "Frame")                                             # down tube to the seat post
-    rod((0, -0.12, 0.30), (0, -0.22, 0.11), 0.016, RED, "Rear")
-    rod((0, -0.12, 0.30), (0, -0.12, 0.42), 0.014, RED, "SeatPost")
-    box((0, -0.12, 0.43), (0.22, 0.24, 0.035), YELLOW, "Seat")
+    rod((0, 0.33, 0.56), (0, -0.12, 0.18), 0.016, RED, "Frame")                                             # down tube to the seat post
+    rod((0, -0.12, 0.18), (0, -0.22, 0.11), 0.016, RED, "Rear")
+    rod((0, -0.12, 0.18), (0, -0.12, 0.28), 0.014, RED, "SeatPost")
+    box((0, -0.12, 0.29), (0.22, 0.24, 0.035), YELLOW, "Seat")
 
     bpy.ops.object.select_all(action="DESELECT")
     for o in bpy.data.objects:
