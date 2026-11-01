@@ -166,11 +166,14 @@ def stage_play(keep):
     pogo < base * 0.97 or fail("pogo is not slower than walking")   # walks on this field vary 0.9 to 1.5 tiles/s with the pathing; the pogo is steady at ~0.85
     # the other transports, one item at a time in the pack so the weight stays comparable
     carried = "ImpracticalTransport.PogoStick"
-    for item, slip_node in (("Tricycle", "slip_trike/Bob_TrikeSlip"), ("Unicycle", "slip_uni/Bob_UniSlip")):
+    for item, slip_node, mount_node in (("Tricycle", "slip_trike/Bob_TrikeSlip", "mount_trike/Bob_TrikeMount"), ("Unicycle", "slip_uni/Bob_UniSlip", "mount_uni/Bob_UniMount")):
         full, label = f"ImpracticalTransport.{item}", item.lower()
         bot("smokechat", f"/removeitem {carried} 0"); time.sleep(2)
         bot("smokechat", f'/additem "{USER}" {full}'); time.sleep(4)
+        bot("smokenode", "900")
         bot("smokeequipaction", item); time.sleep(5)
+        mount_log = sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding="utf-8", errors="replace")
+        mount_node in mount_log or fail(f"the {item} mount node never played (see NODE lines in the client log)")
         bot("smokecalm", "1"); item_speed = speed(12)
         expected_speed(label, item_speed)
         print(f"{label} {item_speed:.2f} tiles/s ({item_speed / base:.0%} of the faster walk)")

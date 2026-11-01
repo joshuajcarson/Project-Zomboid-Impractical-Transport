@@ -19,7 +19,8 @@ local PROFILES = {
     },
     -- a child's tricycle under a grown rider: slow and tiring, but it rarely throws the rider
     ["ImpracticalTransport.Tricycle"] = {
-        name = "Trike", mount = false,
+        name = "Trike", mount = true, transitionSeconds = 1.1,
+        dismount = { time = 105 },      -- see the unicycle
         speed = { [""] = 0.58, Run = 0.78 },
         slip = 0.03, slipRun = 2.0, slipSeconds = { 1.0, 2.0 }, slipFall = 0.25,      -- pedal slip: chance per second, run multiplier, how long it lasts; slipFall: share of slips that tip over backwards
         tier1 = 0.8, tier2 = 0.5,
@@ -28,7 +29,8 @@ local PROFILES = {
     },
     -- a unicycle: balance is the whole job, so it wobbles often and falls more than the tricycle
     ["ImpracticalTransport.Unicycle"] = {
-        name = "Uni", mount = true, transitionSeconds = 1.1,      -- Bob_UniMount / Bob_UniDismount are 32 frames
+        name = "Uni", mount = true, transitionSeconds = 1.1,
+        dismount = { time = 105 },      -- the unequip action lasts this long (maxTime units: 40 measured as about 0.5 s, the clip is 1.1 s) while the dismount node plays Bob_UniDismount, instead of the vanilla pick-up      -- Bob_UniMount / Bob_UniDismount are 32 frames
         speed = { [""] = 0.46, Run = 0.62 },
         slip = 0.10, slipRun = 2.5, slipSeconds = { 0.8, 1.4 },      -- a wobble every ~10 s that usually recovers
         tier1 = 0.8, tier2 = 0.5,
@@ -84,6 +86,8 @@ local function groundAt(square)
     return NEUTRAL
 end
 
+ImpracticalTransport.groundAt = groundAt      -- the test bot scans the world with it (smokescan)
+
 local function bushNear(player)
     return guarded("bush", function()
         local square = player:getCurrentSquare()
@@ -109,6 +113,30 @@ local transitionUntil = {}
 local lastKind = {}      -- the Name of the last transport held, so its Active variable can be cleared after the item is gone
 local stumbleAfter = {}
 local lastReport = {}
+
+-- Putting a transport away: vanilla plays its pick-up-and-toss animation with the whole item in hand. For profiles with a `dismount` the unequip action
+-- sets no action animation at all (an unknown action node falls back to the engine's surrender emote); the transport's own dismount node (idle state, driven
+-- by <Name>Transition) plays instead: the rider steps off and the item stays where it was. The item is taken away when the action ends after `time`.
+require "TimedActions/ISUnequipAction"
+local vanillaUnequipNew = ISUnequipAction.new
+function ISUnequipAction:new(character, item, maxTimeInit, reason)
+    local o = vanillaUnequipNew(self, character, item, maxTimeInit, reason)
+    local profile = item and PROFILES[item:getFullType()]
+    if profile and profile.dismount and reason ~= "drop" and reason ~= "place" and not o.fromHotbar then
+        o.maxTime = profile.dismount.time
+        o.ipDismount = true
+    end
+    return o
+end
+local vanillaUnequipStart = ISUnequipAction.start
+function ISUnequipAction:start()
+    if self.ipDismount then
+        self.item:setJobType(getText("ContextMenu_Unequip") .. " " .. self.item:getName())
+        self.item:setJobDelta(0.0)
+        return
+    end
+    vanillaUnequipStart(self)
+end
 local lastPace = {}
 local stallUntil = {}
 local TIER_SPEED = { ["0"] = 1.0, ["1"] = 0.6, ["2"] = 0.3 }      -- what the T1 and T2 clips scale the travel by

@@ -15,7 +15,7 @@ I checked uprightness myself at the four real screen facings (SE, NE, SW, NW) wi
 - A8: tricycle pedals now go clockwise like the unicycle (A2 passed).
 - B2 (tricycle slip): now the rider and trike tip back about the rear axle (front wheel up) while the torso tilts back, then settle; about 1 in 4 slips tips into a backwards fall (more when running or winded). B3: falls now come from this.
 - B4 (unicycle): the wobble no longer spins the feet faster; it is a lurch with flailing arms at half pace about every 10 s, and a real fall about every 50 s (more when running). B5: pogo rate left at one per 80 s as you asked; test for longer than a minute.
-Still not done: A6 dismount (experiment pending), roller skates (worn), sprint question B7, ground types and weight (C1-C3, I will test those in the harness).
+New since: A6 dismount and a new tricycle mount/dismount: the unequip action no longer plays the vanilla pick-up; the rider steps off, the unicycle or tricycle stays on the ground, and the item is taken away when the action ends (about 1.1 s); mounting the tricycle steps the rider onto the seat (please re-test A5/A6 for both, and say if the step-off feels too quick). Still not done: (old A6 note removed), roller skates (worn), sprint question B7, ground types and weight (C1-C3, I will test those in the harness).
 
 ## A. Looks (stand still, then walk in each direction; face the screen with S)
 

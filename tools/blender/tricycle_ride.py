@@ -134,6 +134,30 @@ for kind, frames in CYCLE.items():
         write_clip(f"Bob_TrikeRide{kind}{tier}", samples, frames, SPEED[kind] * (frames / FPS) / TILES_PER_TRAVEL_SECOND * tf)
 idle = pose(0.0)
 write_clip("Bob_TrikeIdle", {0: idle, 12: idle}, 12, 0)
+# mount and dismount: the trike stays where it is (Bip01_Prop1 is held at its seated transform in armature space) while the rider steps onto the seat or off it,
+# one step back; every frame is keyed so the prop does not swing. The dismount is played while the unequip action runs, the item goes when it ends.
+MOUNT_FRAMES = 32
+def fk(local):
+    for n in order:
+        par = pb[n].parent
+        pb[n].matrix = (par.matrix @ local[n]) if par else local[n].copy()
+        bpy.context.view_layer.update()
+seated = pose(0.0)
+PROP_FIXED = pb["Bip01_Prop1"].matrix.copy()
+off_pose = {n: m.copy() for n, m in idle_local.items()}
+off_pose["Bip01"].translation = off_pose["Bip01"].translation + Mi.to_3x3() @ (-fwd * 0.35 * s)       # standing, stepped back from the seat
+smooth = lambda w: w * w * (3 - 2 * w)
+def keyed(blend_of):
+    out = {}
+    for f in range(MOUNT_FRAMES + 1):
+        loc = blend_of(f); fk(loc)
+        pb["Bip01_Prop1"].matrix = PROP_FIXED; bpy.context.view_layer.update()
+        loc["Bip01_Prop1"] = pb["Bip01_Prop1"].parent.matrix.inverted() @ PROP_FIXED if pb["Bip01_Prop1"].parent else PROP_FIXED
+        out[f] = loc
+    return out
+write_clip("Bob_TrikeMount", keyed(lambda f: blend(off_pose, seated, smooth(min(1.0, f / 22)))), MOUNT_FRAMES, 0)
+write_clip("Bob_TrikeDismount", keyed(lambda f: blend(seated, off_pose, smooth(min(1.0, f / 22)))), MOUNT_FRAMES, 0)
+
 # pedal slip: the feet spin, the rider and trike tip back about the rear axle (front wheel up) and the torso tilts back, then it settles; zero travel
 bump = lambda f: math.sin(math.pi * f / 24) ** 2
 write_clip("Bob_TrikeSlip", {f: pose(2 * f / 24, tip=16 * bump(f), torso=12 * bump(f)) for f in range(25)}, 24, 0)

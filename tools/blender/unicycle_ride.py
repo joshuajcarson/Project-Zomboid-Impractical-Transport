@@ -140,7 +140,28 @@ MOUNT_FRAMES = 32
 stand = idle_local
 seated, out = pose(0.0, 1.0), pose(0.0, 0.0)
 write_clip("Bob_UniMount", {0: stand, 8: blend(stand, seated, 0.5), 16: seated, 32: out}, MOUNT_FRAMES, 0)
-write_clip("Bob_UniDismount", {0: out, 16: seated, 24: blend(seated, stand, 0.5), 32: stand}, MOUNT_FRAMES, 0)
+# dismount (played by the unequip action, see the Lua): the right hand goes to the handle, the rider steps back off the saddle and the unicycle STAYS where it
+# was (Bip01_Prop1 is held at its riding transform in armature space); the item is taken away when the action ends. Every frame is keyed so the prop does not swing.
+def fk(local):
+    for n in order:
+        par = pb[n].parent
+        pb[n].matrix = (par.matrix @ local[n]) if par else local[n].copy()
+        bpy.context.view_layer.update()
+pose(0.0, 1.0)
+PROP_FIXED = pb["Bip01_Prop1"].matrix.copy()
+off_pose = {n: m.copy() for n, m in idle_local.items()}
+off_pose["Bip01"].translation = off_pose["Bip01"].translation + Mi.to_3x3() @ (-fwd * 0.30 * s)       # standing, stepped back behind the saddle
+smooth = lambda w: w * w * (3 - 2 * w)
+dismount = {}
+for f in range(MOUNT_FRAMES + 1):
+    if f <= 10: loc = blend(out, seated, smooth(f / 10))
+    elif f <= 24: loc = blend(seated, off_pose, smooth((f - 10) / 14))
+    else: loc = {n: m.copy() for n, m in off_pose.items()}
+    fk(loc)
+    pb["Bip01_Prop1"].matrix = PROP_FIXED; bpy.context.view_layer.update()
+    loc["Bip01_Prop1"] = pb["Bip01_Prop1"].parent.matrix.inverted() @ PROP_FIXED if pb["Bip01_Prop1"].parent else PROP_FIXED
+    dismount[f] = loc
+write_clip("Bob_UniDismount", dismount, MOUNT_FRAMES, 0)
 # wobble: the rider rocks and both arms flail while the wheel keeps going at half pace (no extra pedal spinning: a unicycle loses balance, it does not stall);
 # the Lua plays it for about a second, and sometimes the wobble ends in a fall
 SWAY, WAVE = 0.07 * s, 0.16 * s

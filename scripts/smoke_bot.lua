@@ -30,7 +30,21 @@ RL.autoRearm = false
 commands.smokeunequipaction = function(p, a)
     local item = p:getPrimaryHandItem()
     if not item then return false, "nothing held" end
-    ISTimedActionQueue.add(ISUnequipAction:new(p, item, 50))
+    local action = ISUnequipAction:new(p, item, 50)
+    print("UNEQUIP maxTime=" .. tostring(action.maxTime) .. " dismount=" .. tostring(action.ipDismount) .. " fromHotbar=" .. tostring(action.fromHotbar))
+    ISTimedActionQueue.add(action)
+    return true, "queued"
+end
+-- smokeunequiptime|maxTime: unequip with that maxTime and log how long the action really lasts ("UNEQUIPTIME maxTime=.. real=.. ms")
+commands.smokeunequiptime = function(p, a)
+    local item = p:getPrimaryHandItem()
+    if not item then return false, "nothing held" end
+    local action = ISUnequipAction:new(p, item, 50)
+    action.maxTime = tonumber(a and a.a) or action.maxTime
+    local t0, requested = getTimestampMs(), action.maxTime
+    local perform = action.perform
+    action.perform = function(self) print("UNEQUIPTIME maxTime=" .. requested .. " real=" .. (getTimestampMs() - t0) .. " ms"); return perform(self) end
+    ISTimedActionQueue.add(action)
     return true, "queued"
 end
 commands.smokehands = function(p, a)
@@ -266,6 +280,30 @@ commands.smokeslip = function(p, a)
     return true, "slip"
 end
 
+-- smokescan|radius: count the ground types (as the mod classifies them) and bushes or trees around the player and log the first square of each as "SCAN <type> n=<count> first=<x>,<y>"
+commands.smokescan = function(p, a)
+    local r = tonumber(a and a.a) or 40
+    local cell, px, py = getCell(), math.floor(p:getX()), math.floor(p:getY())
+    local seen, order = {}, {}
+    for dx = -r, r do
+        for dy = -r, r do
+            local sq = cell:getGridSquare(px + dx, py + dy, 0)
+            if sq then
+                local g = ImpracticalTransport.groundAt(sq)
+                local keys = { tostring(g[1] or "neutral") }
+                if sq:HasTree() then keys[#keys + 1] = "TREE" end
+                if sq:getBush() ~= nil then keys[#keys + 1] = "BUSH" end
+                for _, key in ipairs(keys) do
+                    if not seen[key] then seen[key] = { n = 0, x = px + dx, y = py + dy }; order[#order + 1] = key end
+                    seen[key].n = seen[key].n + 1
+                end
+            end
+        end
+    end
+    for _, key in ipairs(order) do print(string.format("SCAN %s n=%d first=%d,%d", key, seen[key].n, seen[key].x, seen[key].y)) end
+    return true, "scanned " .. #order .. " kinds"
+end
+
 -- smokecalm|1/0: no random slips or stumbles (speed measurements); forced ones (smokeslip, smokestumble) still happen
 commands.smokecalm = function(p, a)
     ImpracticalTransport.calm = (a and a.a) ~= "0"
@@ -292,7 +330,7 @@ commands.smokenode = function(p, a)
         local d = tostring(player:getAnimationDebug())
         local node, clip = d:match("Node: (%S+)"), d:match("Anim: (%S+)")
         local key = tostring(node) .. "/" .. tostring(clip) .. "/" .. tostring(player:getVariableString("PogoTransition")) .. "/" .. tostring(player:getVariableBoolean("PogoActive"))
-        if key ~= last then last = key; print("NODE " .. tick .. " " .. key) end
+        if key ~= last then last = key; print("NODE " .. tick .. " t=" .. getTimestampMs() .. " " .. key) end
         if tick >= left then Events.OnPlayerUpdate.Remove(sample) end
     end
     Events.OnPlayerUpdate.Add(sample)
