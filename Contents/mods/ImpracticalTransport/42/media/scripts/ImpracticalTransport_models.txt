@@ -29,4 +29,17 @@ module Base
             offset = 0.1800 -0.2250 -0.5250,
         }
     }
+
+    model Unicycle_3d
+    {
+        mesh = ImpracticalTransport/Unicycle,
+        texture = ImpracticalTransport/Unicycle_texture,
+        scale = 1,
+
+        attachment Bip01_Prop1
+        {
+            rotate = 90.0000 180.0000 0.0000,
+            offset = 0.0000 -0.1050 -0.6000,
+        }
+    }
 }

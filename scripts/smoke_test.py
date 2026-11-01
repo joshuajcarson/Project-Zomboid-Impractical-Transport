@@ -11,7 +11,7 @@ MOD_ID = "ImpracticalTransport"
 RL = pathlib.Path(os.environ.get("PZ_RL_REPO", r"C:\bench\project-zomboid-rl-based-players"))
 ARENA = (5385, 10114)   # the RL harness's bare dirt field (5377,10114; its west corner has traffic cones, so start 8 tiles east); the old arena at 10770,9410 sits beside a house, shed and playground, and 4010,11767 is a crop field that hides the rider; the character otherwise resumes wherever it was left
 USER = "Smoke1"   # fresh account: a dead character from an earlier run would otherwise be reused
-ITEMS = ["ImpracticalTransport.PogoStick", "ImpracticalTransport.Tricycle"]
+ITEMS = ["ImpracticalTransport.PogoStick", "ImpracticalTransport.Tricycle", "ImpracticalTransport.Unicycle"]
 # throw-away rotate calibration set, only present while tools/make_calibration.py has generated it
 CAL = MOD / "42/media/scripts/ImpracticalTransport_calibration_items.txt"
 ITEMS += [f"ImpracticalTransport.{n}" for n in re.findall(r"item (PogoCal\d+)", CAL.read_text(encoding="utf-8") if CAL.exists() else "")]
@@ -162,21 +162,25 @@ def stage_play(keep):
     base = max(walk, walk2)
     print(f"bare-hand walks {walk:.2f} and {walk2:.2f}, pogo {pogo:.2f} tiles/s ({pogo / base:.0%} of the faster walk)")
     pogo < base * 0.97 or fail("pogo is not slower than walking")   # walks on this field vary 0.9 to 1.5 tiles/s with the pathing; the pogo is steady at ~0.85
-    # the tricycle, one item at a time in the pack so the weight stays comparable
-    trike = "ImpracticalTransport.Tricycle"
-    bot("smokechat", f"/removeitem ImpracticalTransport.PogoStick 0"); time.sleep(2)
-    bot("smokechat", f'/additem "{USER}" {trike}'); time.sleep(4)
-    bot("smokeequipaction", "Tricycle"); time.sleep(5)
-    bot("smokecalm", "1"); trike_speed = speed(12)
-    expected_speed("tricycle", trike_speed)
-    print(f"tricycle {trike_speed:.2f} tiles/s ({trike_speed / base:.0%} of the faster walk)")
-    trike_speed > 0.1 or fail("tricycle rider did not move")
-    trike_speed < base * 0.97 or fail("tricycle is not slower than walking")
-    bot("smokenode", "600"); p0 = pos(); bot("goto", f"{p0['x'] + 12:.1f}", f"{p0['y']:.1f}"); time.sleep(3)
-    bot("smokeslip"); time.sleep(4); slip_at = pos(); time.sleep(1); bot("stop"); time.sleep(1)
-    log = sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding="utf-8", errors="replace")
-    "slip_trike/Bob_TrikeSlip" in log or fail("the pedal slip node never played (see NODE lines in the client log)")
-    bot("smokeunequipaction"); time.sleep(6); bot("smokechat", f"/removeitem {trike} 0"); time.sleep(2)
+    # the other transports, one item at a time in the pack so the weight stays comparable
+    carried = "ImpracticalTransport.PogoStick"
+    for item, slip_node in (("Tricycle", "slip_trike/Bob_TrikeSlip"), ("Unicycle", "slip_uni/Bob_UniSlip")):
+        full, label = f"ImpracticalTransport.{item}", item.lower()
+        bot("smokechat", f"/removeitem {carried} 0"); time.sleep(2)
+        bot("smokechat", f'/additem "{USER}" {full}'); time.sleep(4)
+        bot("smokeequipaction", item); time.sleep(5)
+        bot("smokecalm", "1"); item_speed = speed(12)
+        expected_speed(label, item_speed)
+        print(f"{label} {item_speed:.2f} tiles/s ({item_speed / base:.0%} of the faster walk)")
+        item_speed > 0.1 or fail(f"{label} rider did not move")
+        item_speed < base * 0.97 or fail(f"{label} is not slower than walking")
+        bot("smokenode", "600"); p0 = pos(); bot("goto", f"{p0['x'] + 12:.1f}", f"{p0['y']:.1f}"); time.sleep(3)
+        bot("smokeslip"); time.sleep(4); time.sleep(1); bot("stop"); time.sleep(1)
+        log = sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding="utf-8", errors="replace")
+        slip_node in log or fail(f"the {label} slip node never played (see NODE lines in the client log)")
+        bot("smokeunequipaction"); time.sleep(6)
+        carried = full
+    bot("smokechat", f"/removeitem {carried} 0"); time.sleep(2)
     bot("smokechat", f'/additem "{USER}" ImpracticalTransport.PogoStick'); time.sleep(4)
     bot("smokeequipaction", "PogoStick")   # leave it in hand for whoever plays next
     print("play ready: god mode on, dressed, pogo stick equipped")

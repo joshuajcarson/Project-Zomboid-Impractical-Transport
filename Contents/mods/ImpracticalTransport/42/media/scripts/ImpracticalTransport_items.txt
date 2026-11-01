@@ -35,4 +35,21 @@ module ImpracticalTransport
         MaxDamage = 0.2,
         Tags = ImpracticalTransport;
     }
+
+    /* A unicycle: balance is the whole job. Held two-handed; model, texture and icon come from tools/blender/unicycle.py. */
+    item Unicycle
+    {
+        DisplayName = Unicycle,
+        ItemType = base:weapon,
+        Weight = 5.0,
+        Icon = Unicycle,
+        WeaponSprite = Unicycle_3d,
+        WorldStaticModel = Unicycle_3d,
+        TwoHandWeapon = TRUE,
+        RequiresEquippedBothHands = TRUE,
+        MaxRange = 0.5,
+        MinDamage = 0.1,
+        MaxDamage = 0.2,
+        Tags = ImpracticalTransport;
+    }
 }

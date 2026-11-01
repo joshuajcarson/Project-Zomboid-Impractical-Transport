@@ -26,6 +26,15 @@ local PROFILES = {
         drain = 0.003, drainRun = 1.5, drainSprint = 1.5,
         stumble = 0.0015, stumbleRun = 3.0, stumbleSprint = 3.0,      -- falling back off the seat is rare; slipping is the common failure
     },
+    -- a unicycle: balance is the whole job, so it wobbles often and falls more than the tricycle
+    ["ImpracticalTransport.Unicycle"] = {
+        name = "Uni", mount = false,
+        speed = { [""] = 0.46, Run = 0.62 },
+        slip = 0.06, slipRun = 2.5, slipSeconds = { 0.8, 1.6 },
+        tier1 = 0.8, tier2 = 0.5,
+        drain = 0.004, drainRun = 1.6, drainSprint = 1.6,
+        stumble = 0.006, stumbleRun = 4.0, stumbleSprint = 4.0,
+    },
 }
 
 -- throw-away calibration variants (tools/make_calibration.py): same behaviour as the real stick

@@ -35,6 +35,7 @@ TIER = """	<m_Conditions>
 TRANSPORTS = {
     "Pogo": dict(clip="Bob_PogoHop", gaits=(("movement", "walk_pogo", ""), ("run", "run_pogo", "Run"), ("sprint", "defaultSprint_pogo", "Sprint"))),
     "Trike": dict(clip="Bob_TrikeRide", gaits=(("movement", "walk_trike", ""), ("run", "run_trike", "Run"), ("sprint", "sprint_trike", "Run")), idle="Bob_TrikeIdle"),
+    "Uni": dict(clip="Bob_UniRide", gaits=(("movement", "walk_uni", ""), ("run", "run_uni", "Run"), ("sprint", "sprint_uni", "Run")), idle="Bob_UniIdle"),
 }
 for var, t in TRANSPORTS.items():
     for folder, stem, suffix in t["gaits"]:

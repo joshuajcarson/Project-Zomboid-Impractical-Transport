@@ -41,7 +41,14 @@ Lessons baked into the test: the server checksums scripts, so any mod edit needs
 - [x] T6 Pedal slip (stall): for 1-2 s the feet spin and the trike does not move (a `TrikeStall` variable and a node playing a no-travel clip), then it resumes; much commoner than a fall
 - [x] T7 Falls only as a rare lean-back (the back fall, no side or forward fall), tuned lower than now
 - [x] Verified in game: forced slip plays `slip_trike/Bob_TrikeSlip` and the screenshot burst shows the rider sitting back, feet spinning, trike standing still (2026-11-01); the fall was seen in the node log (walkBumpFallFront > onback), not yet in a frame. `smokecalm 1` switches off random slips and falls for the speed checks
-**M2: next transport (roller skates), same pipeline.** Then unicycle, stilts, inflatable ball.
+**M2: the unicycle (third transport, same held-item pipeline)** (started 2026-11-01 overnight).
+- [x] Model (`tools/blender/unicycle.py`), seated-and-rocking ride clips and wobble clip (`unicycle_ride.py`, free arm out for balance, right hand on a saddle handle), item, model entry (attachment computed from the grip point, not fitted: `offset = (gx, -gy, -gz) * 0.75` with `rotate 90 180 0`), nodes, Lua profile (wobbles often, falls more than the tricycle), smoke test loop over tricycle and unicycle
+- [x] Smoke test passes with the unicycle (0.36 tiles/s measured, 0.46 expected, 24% of walking; the wobble node plays)
+- [x] Attachment checked by screenshot: the computed offset worked first time (rider on the saddle, right hand on the handle, left arm out, feet on the pedals)
+- [x] Ride and wobble seen in screenshots (`scripts/wake.py` before `shoot.py` after view changes); the fall is the shared one already seen in the node log. Still for a human: how the unicycle feels, its in-game icon
+**Open design question, needs the user: roller skates.** Vanilla has no skates item, and skates are worn, not held. Option A: a worn Shoes-slot clothing item with a wheel model on the feet (a real wearable: clothing XML, model attach to the foot bones, an equip variable from the worn item; most faithful, most work, new unknowns). Option B: reuse the held-item pattern with a "skates" item held in hand while the feet glide (cheap, consistent with the others, but the rider holds shoes in the hand). Recommendation: B first for the gait and failure modes (glide with long runout and poor stopping), A later if it is worth it.
+Then: stilts, inflatable ball with handles.
+
 Human-only checks stay in the testing queue below.
 
 ## Resume here (written 2026-10-31 when the user needed the PC back)
