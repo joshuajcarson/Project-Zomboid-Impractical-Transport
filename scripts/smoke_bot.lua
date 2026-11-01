@@ -352,6 +352,28 @@ commands.smokeattach = function(p, a)
     return true, msg
 end
 
+-- smokecars|radius|remove: log the vehicles within `radius` tiles of the player ("CARS n=.. at x,y ..."); with a second argument `remove` also ask the server to remove them
+-- (the vanilla vehicle command "remove", the one the debug menu uses), so a test walk is not blocked by parked cars.
+commands.smokecars = function(p, a)
+    local r = tonumber(a and a.a) or 30
+    local found, removed = {}, 0
+    local it = getCell():getVehicles():iterator()      -- not an ArrayList: no get(), iterate it
+    while it:hasNext() do
+        local v = it:next()
+        local sq = v:getSquare() or v:getCurrentSquare()
+        if sq and math.abs(sq:getX() - p:getX()) <= r and math.abs(sq:getY() - p:getY()) <= r then
+            found[#found + 1] = string.format("%d@%d,%d", v:getId(), sq:getX(), sq:getY())
+            if a and a.b == "remove" then
+                sendClientCommand(p, "vehicle", "remove", { vehicle = v:getId() })
+                removed = removed + 1
+            end
+        end
+    end
+    local msg = string.format("CARS n=%d removed=%d %s", #found, removed, table.concat(found, " "))
+    print(msg)
+    return true, msg
+end
+
 -- smokecalm|1/0: no random slips or stumbles (speed measurements); forced ones (smokeslip, smokestumble) still happen
 commands.smokecalm = function(p, a)
     ImpracticalTransport.calm = (a and a.a) ~= "0"

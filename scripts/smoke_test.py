@@ -196,6 +196,7 @@ def stage_play(keep):
     "coast_skates/Bob_SkateCoast" in log or fail("the skates coast node never played after stopping (see NODE lines in the client log)")
     # pavement is where skates beat walking: the parking lot (scripts/test_places.json), best of three walks (a parked car can block one), then back to the arena
     bot("tp", "7740", "11755"); time.sleep(20)
+    bot("smokecars", "40|remove"); time.sleep(6)      # parked cars blocked the walk: the server removes the ones within 40 tiles
     def cruise(dx):
         """speed over the middle of a long walk (after a 1.5 s run-in, for 3.5 s): the 8 s whole-walk average of speed() reads low for anything that reaches the goal early"""
         p0 = pos(); bot("goto", f"{p0['x'] + dx:.1f}", f"{p0['y']:.1f}"); time.sleep(1.5)
