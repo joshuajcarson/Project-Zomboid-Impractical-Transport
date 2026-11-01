@@ -5,12 +5,14 @@ ImpracticalTransport = ImpracticalTransport or {}
 
 -- speed lives in the clips (tools/blender/pogo_hop.py: DISTANCE, GAITS, TIERS), not here
 -- tier1, tier2: pace (tiredness x terrain x engine slowdown) under which the slower hop clips play; dirt and grass stay at full pace
+-- speed: tiles per second at full pace (tier 0) by gait, measured from the clips; only used for the expectation printed in the pace log
 -- drain: endurance lost per second while moving, times drainRun / drainSprint when running or sprinting
 -- stumble: chance per second of tripping while fresh (about one fall every 80 s of hopping; winded riders trip up to 5x as often),
 --   times stumbleRun / stumbleSprint: faster hopping falls much more than it speeds up
 local PROFILES = {
     ["ImpracticalTransport.PogoStick"] = {
         name = "Pogo", mount = true,
+        speed = { [""] = 0.86, Run = 1.6 },
         tier1 = 0.8, tier2 = 0.5,
         drain = 0.0035, drainRun = 1.6, drainSprint = 2.5,
         stumble = 0.0125, stumbleRun = 3.0, stumbleSprint = 6.0,
@@ -18,6 +20,7 @@ local PROFILES = {
     -- a child's tricycle under a grown rider: slow and tiring, but it rarely throws the rider
     ["ImpracticalTransport.Tricycle"] = {
         name = "Trike", mount = false,
+        speed = { [""] = 0.58, Run = 0.78 },
         tier1 = 0.8, tier2 = 0.5,
         drain = 0.003, drainRun = 1.5, drainSprint = 1.5,
         stumble = 0.004, stumbleRun = 3.0, stumbleSprint = 3.0,
@@ -96,6 +99,8 @@ local transitionUntil = {}
 local lastKind = {}      -- the Name of the last transport held, so its Active variable can be cleared after the item is gone
 local stumbleAfter = {}
 local lastReport = {}
+local lastPace = {}
+local TIER_SPEED = { ["0"] = 1.0, ["1"] = 0.6, ["2"] = 0.3 }      -- what the T1 and T2 clips scale the travel by
 local STUMBLE_COOLDOWN_SECONDS = 20
 local TRANSITION_SECONDS = 0.8     -- length of Bob_PogoMount / Bob_PogoDismount (24 frames at 30 fps)
 
@@ -168,7 +173,19 @@ Events.OnPlayerUpdate.Add(function(player)
     -- Run and sprint have their own faster clips. Tier 0 is full pace, 1 and 2 are the slower clips for loose ground, a tired rider or a heavy slowdown.
     local gait = player:isSprinting() and "Sprint" or player:isRunning() and "Run" or ""
     local pace = tired * terrain
-    player:setVariable(profile.name .. "Tier", pace >= profile.tier1 and "0" or pace >= profile.tier2 and "1" or "2")
+    local tier = pace >= profile.tier1 and "0" or pace >= profile.tier2 and "1" or "2"
+    player:setVariable(profile.name .. "Tier", tier)
+    -- once a second while moving: every input to the slowdown and the speed it should produce, so a test can compare with the measured speed
+    local nowMs = getTimestampMs()
+    if player:isPlayerMoving() and nowMs - (lastPace[num] or 0) >= 1000 then
+        lastPace[num] = nowMs
+        -- the clip that plays decides the speed, and it can differ from the engine's gait flag (a bot's walk order sets isRunning but plays the walk clip)
+        local clip = tostring(player:getAnimationDebug()):match("Anim: (%S+)") or ""
+        local clipGait = clip:find("Sprint", 1, true) and "Sprint" or clip:find("Run", 1, true) and "Run" or ""
+        local base = profile.speed and profile.speed[clipGait]
+        print(string.format("ImpracticalTransport pace clip=%s gait=%s tired=%.2f vanilla=%.2f ground=%.2f pace=%.2f tier=%s expected=%.2f",
+            clip, gait == "" and "walk" or gait, tired, vanilla, ground.speed, pace, tier, base and base * TIER_SPEED[tier] or -1))
+    end
 
     if player:isPlayerMoving() then
         local fitness = player:getPerkLevel(Perks.Fitness)

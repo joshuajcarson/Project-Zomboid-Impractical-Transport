@@ -27,6 +27,19 @@ Run any of them with `"C:\Program Files\Blender Foundation\Blender 4.1\blender.e
 - Stop everything afterwards: `python <RL repo>/scripts/cleanup.py`.
 Lessons baked into the test: the server checksums scripts, so any mod edit needs a full server boot; items must be added server-side (`/additem`), and hands must only change through real equip/unequip actions, or the server and client disagree and nothing can be equipped.
 
+## Milestones (tracked here; update the checkboxes as tasks finish)
+**M1: the tricycle is a second finished transport, verified without a human where possible** (target 2026-11-01 overnight run).
+- [x] Model, clips, item, Lua profile, nodes
+- [x] Attachment fitted in game (TrikeCal2)
+- [x] Repeatable test conditions (reset/check, real-time days, weather, weight)
+- [x] T1 Seated ride clip looks right in game (burst checked 2026-11-01)
+- [x] T2 Speed measured (tricycle 0.48-0.58 tiles/s walking, ~0.78 running by trace) and checked in the smoke test (slower than walking)
+- [x] T3 Per-second slowdown log (`ImpracticalTransport pace clip=.. tired=.. vanilla=.. ground=.. pace=.. tier=.. expected=..`; the smoke test fails if measured speed is >30% off the expected one for the pogo and the tricycle) (tired, vanilla, ground, pace, tier, expected tiles/s) and a smoke check comparing measured with expected
+- [ ] T4 Tiers and stumble work for the tricycle
+- [ ] T5 Inventory icon and rest pose seen in game
+**M2: next transport (roller skates), same pipeline.** Then unicycle, stilts, inflatable ball.
+Human-only checks stay in the testing queue below.
+
 ## Resume here (written 2026-10-31 when the user needed the PC back)
 Branch `claude/zomboid-inefficient-vehicles-mod-e27194`; the game and server are stopped; everything is committed. Pogo stick: finished apart from the human checks in the testing queue below.
 **Tricycle (in progress, nothing of it has been seen in game yet):** model/texture/icon (`tools/blender/tricycle.py`), seated pedalling clips `Bob_TrikeRide{,Run}{,T1,T2}` and `Bob_TrikeIdle` (`tools/blender/tricycle_ride.py`, Blender preview looks right: grown rider, knees up, hands on the grips), item `Tricycle`, model `Tricycle_3d`, Lua profile (`name = "Trike"`, no mount clips), nodes from `tools/make_gait_nodes.py` (`TrikeActive`/`TrikeTier`). Next steps:

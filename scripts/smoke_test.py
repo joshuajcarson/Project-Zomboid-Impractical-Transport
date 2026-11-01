@@ -131,6 +131,12 @@ def stage_play(keep):
     print("conditions:", checks[-1] if checks else "no SMOKECHECK line")
     checks or fail("smokecheck never reported (see client log)")
     "PROBLEMS" in checks[-1] and fail("test conditions are not ideal: " + checks[-1])
+    def expected_speed(name, measured):
+        """The mod logs the speed it expects once a second ("pace ... expected=x"); the measured one has to be within 30% of the latest."""
+        lines = re.findall(r"ImpracticalTransport pace .*expected=(-?\d+\.\d+)", sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding="utf-8", errors="replace"))
+        lines or fail(f"{name}: no pace line in the client log")
+        want = float(lines[-1]); print(f"{name}: measured {measured:.2f} tiles/s, mod expected {want:.2f}")
+        want > 0 and abs(measured - want) > 0.3 * want and fail(f"{name} moves at {measured:.2f} tiles/s but the mod expects {want:.2f}")
     bot("smokeunequipaction"); time.sleep(4)
     walk = speed(12)
     bot("smokenode", "900")      # logs which anim nodes play, to see that the mount clip is chosen
@@ -139,6 +145,7 @@ def stage_play(keep):
     "ImpracticalTransport riding=true" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("riding flag never set (see client log)")
     "mount_pogo/Bob_PogoMount" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("the mount anim node never played (see NODE lines in the client log)")
     pogo = speed(-12)
+    expected_speed("pogo", pogo)
     bot("smokestumble"); time.sleep(8)      # the fall animation has to finish before the unequip below is queued
     "ImpracticalTransport stumble" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("forced stumble never ran (see client log)")
     log = logs[-1].read_text(encoding="utf-8", errors="replace")
@@ -154,6 +161,18 @@ def stage_play(keep):
     base = max(walk, walk2)
     print(f"bare-hand walks {walk:.2f} and {walk2:.2f}, pogo {pogo:.2f} tiles/s ({pogo / base:.0%} of the faster walk)")
     pogo < base * 0.97 or fail("pogo is not slower than walking")   # walks on this field vary 0.9 to 1.5 tiles/s with the pathing; the pogo is steady at ~0.85
+    # the tricycle, one item at a time in the pack so the weight stays comparable
+    trike = "ImpracticalTransport.Tricycle"
+    bot("smokechat", f"/removeitem ImpracticalTransport.PogoStick 0"); time.sleep(2)
+    bot("smokechat", f'/additem "{USER}" {trike}'); time.sleep(4)
+    bot("smokeequipaction", "Tricycle"); time.sleep(5)
+    trike_speed = speed(12)
+    expected_speed("tricycle", trike_speed)
+    print(f"tricycle {trike_speed:.2f} tiles/s ({trike_speed / base:.0%} of the faster walk)")
+    trike_speed > 0.1 or fail("tricycle rider did not move")
+    trike_speed < base * 0.97 or fail("tricycle is not slower than walking")
+    bot("smokeunequipaction"); time.sleep(6); bot("smokechat", f"/removeitem {trike} 0"); time.sleep(2)
+    bot("smokechat", f'/additem "{USER}" ImpracticalTransport.PogoStick'); time.sleep(4)
     bot("smokeequipaction", "PogoStick")   # leave it in hand for whoever plays next
     print("play ready: god mode on, dressed, pogo stick equipped")
     keep or ch.close()
