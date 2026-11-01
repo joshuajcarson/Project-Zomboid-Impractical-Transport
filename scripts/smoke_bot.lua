@@ -251,6 +251,17 @@ commands.smokeweather = function(p, a)
     return true, msg
 end
 
+-- smokehold|value: keep endurance at that level every update (god mode refills it), so the winded-rider tiers can be tested; no value = stop holding
+local holdHandler
+commands.smokehold = function(p, a)
+    if holdHandler then Events.OnPlayerUpdate.Remove(holdHandler); holdHandler = nil end
+    local v = tonumber(a and a.a)
+    if not v then return true, "hold off" end
+    holdHandler = function(player) if player == p then player:getStats():set(CharacterStat.ENDURANCE, v) end end
+    Events.OnPlayerUpdate.Add(holdHandler)
+    return true, "holding endurance at " .. v
+end
+
 -- smokenode|ticks: log which anim node plays, once per change, for `ticks` updates ("NODE <tick> <node> <clip> transition=<PogoTransition> active=<PogoActive>")
 commands.smokenode = function(p, a)
     local left, tick, last = tonumber(a and a.a) or 300, 0, nil
