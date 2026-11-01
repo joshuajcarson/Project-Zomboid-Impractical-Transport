@@ -1,7 +1,7 @@
 """Build a unicycle from primitives and write models_X/ImpracticalTransport/Unicycle.X, its palette texture and an inventory icon.
   blender -b -P tools/blender/unicycle.py
 Blender metres, x sideways, y forward, z up; the origin is on the ground under the wheel. One wheel, a fork, a saddle with a grab handle at the
-front (the right hand holds it, the other arm is out for balance) and two cranks with pedals either side of the hub."""
+front (the right hand holds it, the other arm is out for balance) and no cranks or pedals (the feet just ride beside the tyre)."""
 import bpy, math, pathlib, sys
 from mathutils import Vector, Quaternion
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
@@ -15,8 +15,8 @@ ICON = MEDIA / "textures/Item_Unicycle.png"
 
 # key points the ride clip and the attachment depend on (metres, model frame)
 HUB = (0.0, 0.0, 0.25)               # wheel hub: the pedal cranks turn about it
-CRANK = 0.09                         # pedal circle radius
-PEDAL_X = 0.10                       # pedals sit this far to each side of the hub
+CRANK = 0.09                         # radius of the circle the feet go round (no pedals are modelled)
+PEDAL_X = 0.065                      # the feet ride this far to each side of the hub, close to the tyre
 SEAT = (0.0, -0.02, 0.76)            # top of the saddle
 GRIP = (0.0, 0.14, 0.80)             # the grab handle at the front of the saddle (the right hand holds it; x = 0 so the offset is the same for any x)
 
@@ -24,7 +24,7 @@ GRIP = (0.0, 0.14, 0.80)             # the grab handle at the front of the saddl
 def build():
     before = set(bpy.data.objects.keys())
     BLUE, CHROME, RUBBER = ps.mat("Blue", (0.1, 0.25, 0.8)), ps.mat("Chrome", (0.7, 0.7, 0.75)), ps.mat("Rubber", (0.05, 0.05, 0.05))
-    YELLOW, RED = ps.mat("Yellow", (0.95, 0.8, 0.1)), ps.mat("Red", (0.8, 0.1, 0.1))
+    RED = ps.mat("Red", (0.8, 0.1, 0.1))
 
     def add(op, m, name, **kw):
         op(**kw); o = bpy.context.active_object; o.name = name; o.data.materials.append(m); return o
@@ -42,9 +42,6 @@ def build():
     add(bpy.ops.mesh.primitive_cylinder_add, CHROME, "Hub", radius=0.03, depth=0.16, location=HUB, vertices=8).rotation_euler = (0, math.pi / 2, 0)
     for s in (-1, 1):
         rod((s * 0.05, HUB[1], HUB[2]), (s * 0.05, 0.0, 0.66), 0.012, CHROME, "Fork")                     # fork legs up to the crown
-        ang = math.pi / 2 if s > 0 else -math.pi / 2                                                          # cranks point opposite ways
-        rod((s * 0.08, HUB[1], HUB[2]), (s * 0.08, HUB[1], HUB[2] + (CRANK if s > 0 else -CRANK)), 0.012, RED, "Crank")
-        box((s * PEDAL_X, HUB[1], HUB[2] + (CRANK if s > 0 else -CRANK)), (0.05, 0.10, 0.015), YELLOW, "Pedal")
     rod((-0.05, 0.0, 0.66), (0.05, 0.0, 0.66), 0.012, CHROME, "Crown")
     rod((0, 0.0, 0.66), (0, -0.02, 0.74), 0.016, BLUE, "SeatPost")
     box((0, -0.02, 0.75), (0.16, 0.24, 0.035), BLUE, "Saddle")

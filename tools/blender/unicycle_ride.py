@@ -88,8 +88,8 @@ seat_lift = (at(SADDLE).z + HIP_ABOVE_SADDLE) - hip_z
 Rlean = Matrix.Rotation(LEAN, 3, up.cross(fwd))   # a positive turn tips the top forward (see pogo_hop.py)
 Rlean_m = Mi.to_3x3() @ Rlean @ arm.matrix_world.to_3x3()
 
-def pose(phase):
-    """phase: pedal angle in turns (0..1); the right pedal is ahead at 0."""
+def pose(phase, hold=0.0):
+    """phase: pedal angle in turns (0..1); the right pedal is ahead at 0. hold: 1 = the right hand is on the saddle handle, 0 = both arms out for balance."""
     for p in pb: p.matrix_basis = Matrix.Identity(4)
     bpy.context.view_layer.update()
     pivot = at(SADDLE) + up * HIP_ABOVE_SADDLE + fwd * (-0.02 * s)     # the hip: the torso turns about it
@@ -100,17 +100,20 @@ def pose(phase):
     bpy.context.view_layer.update()
     for pre, sgn in (("L_", 1), ("R_", -1)):         # sgn: +1 = rider's left (side), -1 = right
         right = sgn < 0
-        ang = 2 * math.pi * (phase + (0.0 if right else 0.5))
+        ang = -2 * math.pi * (phase + (0.0 if right else 0.5))      # clockwise seen from the rider's right: the top of the circle moves forward
         pedal = (-sgn * (tri.PEDAL_X + 0.02), tri.HUB[1] + tri.CRANK * math.cos(ang), tri.HUB[2] + tri.CRANK * math.sin(ang) + 0.02)
         foot_t = at(pedal) + up * ankle
         hand = f"Bip01_{pre}Hand"
         prop_off = arm.matrix_world.to_3x3() @ (Rlean_m @ idle_hand[hand]) @ next(r for (h, _), r in prop_rel.items() if h == hand).translation
-        if sgn < 0: grip = at((-sgn * tri.GRIP[0], tri.GRIP[1], tri.GRIP[2]))                                   # right hand: the handle
-        else: grip = at((-sgn * 0.50, 0.05, 0.95)) + side * (WAVE * math.sin(2 * math.pi * phase * 2)) + up * (WAVE * math.cos(2 * math.pi * phase))   # left arm out
+        out = at((-sgn * 0.50, 0.05, 0.95)) + side * (WAVE * math.sin(2 * math.pi * phase * 2 * (1 if sgn > 0 else -1))) + up * (WAVE * math.cos(2 * math.pi * phase))      # arm out
+        if sgn < 0: grip = (1 - hold) * (out + prop_off) + hold * at((-sgn * tri.GRIP[0], tri.GRIP[1], tri.GRIP[2]))               # right hand: from the handle to out
+        else: grip = out + prop_off
         limb(f"Bip01_{pre}Thigh", f"Bip01_{pre}Calf", f"Bip01_{pre}Foot", foot_t, Rlean @ (fwd * 1.0 + up * 0.7 + side * sgn * 0.25), True, Rlean_m)
         limb(f"Bip01_{pre}UpperArm", f"Bip01_{pre}Forearm", f"Bip01_{pre}Hand", grip - prop_off, Rlean @ (-fwd * 0.3 + side * sgn * 0.6 - up * 0.6), False, Rlean_m)
     for (h, pr), rel in prop_rel.items():
-        pb[pr].matrix = Matrix.Translation((pb[h].matrix @ rel).translation) @ (idle_hand[h] @ rel.to_3x3()).to_4x4()
+        # the held model hangs off Bip01_Prop1: it stays at the saddle handle however far the right arm goes out
+        at_prop = Mi @ at(tri.GRIP) if pr == "Bip01_Prop1" else (pb[h].matrix @ rel).translation
+        pb[pr].matrix = Matrix.Translation(at_prop) @ (idle_hand[h] @ rel.to_3x3()).to_4x4()
     bpy.context.view_layer.update()
     local = {}
     for n in order:
@@ -131,6 +134,12 @@ for kind, frames in CYCLE.items():
         write_clip(f"Bob_UniRide{kind}{tier}", samples, frames, SPEED[kind] * (frames / FPS) / TILES_PER_TRAVEL_SECOND * tf)
 idle = pose(0.0)
 write_clip("Bob_UniIdle", {0: idle, 12: idle}, 12, 0)
+# mount: stand -> on the saddle with the right hand on the handle -> the arm goes out; dismount is the reverse (the loop starts at pose(0.0))
+MOUNT_FRAMES = 32
+stand = idle_local
+seated, out = pose(0.0, 1.0), pose(0.0, 0.0)
+write_clip("Bob_UniMount", {0: stand, 8: blend(stand, seated, 0.5), 16: seated, 32: out}, MOUNT_FRAMES, 0)
+write_clip("Bob_UniDismount", {0: out, 16: seated, 24: blend(seated, stand, 0.5), 32: stand}, MOUNT_FRAMES, 0)
 # wobble (the stall): the rider rocks wildly and flails an arm while the wheel goes nowhere, zero travel; the Lua plays it for a second or two
 SWAY, WAVE = 0.09 * s, 0.22 * s
 write_clip("Bob_UniSlip", {f: pose(2 * f / 24) for f in range(25)}, 24, 0)

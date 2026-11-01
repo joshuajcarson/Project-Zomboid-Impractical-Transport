@@ -28,7 +28,7 @@ local PROFILES = {
     },
     -- a unicycle: balance is the whole job, so it wobbles often and falls more than the tricycle
     ["ImpracticalTransport.Unicycle"] = {
-        name = "Uni", mount = false,
+        name = "Uni", mount = true, transitionSeconds = 1.1,      -- Bob_UniMount / Bob_UniDismount are 32 frames
         speed = { [""] = 0.46, Run = 0.62 },
         slip = 0.06, slipRun = 2.5, slipSeconds = { 0.8, 1.6 },
         tier1 = 0.8, tier2 = 0.5,
@@ -169,13 +169,13 @@ Events.OnPlayerUpdate.Add(function(player)
         -- hop on / step off: the mount and dismount nodes play while PogoTransition names them; the timer below clears it
         -- even if the clip's own end never does (the clips are TRANSITION_SECONDS long)
         if isHeld and profile.mount then
-            player:setVariable("PogoTransition", active and "mount" or "dismount")
-            transitionUntil[num] = getTimestampMs() + TRANSITION_SECONDS * 1000
+            player:setVariable(kind .. "Transition", active and "mount" or "dismount")
+            transitionUntil[num] = getTimestampMs() + (profile.transitionSeconds or TRANSITION_SECONDS) * 1000
         end
     end
     if transitionUntil[num] and getTimestampMs() > transitionUntil[num] then
         transitionUntil[num] = nil
-        player:setVariable("PogoTransition", "")
+        player:setVariable(kind .. "Transition", "")
     end
     if not active then
         if stallUntil[num] then stallUntil[num] = nil; player:setVariable(kind .. "Stall", false) end
