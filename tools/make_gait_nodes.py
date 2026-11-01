@@ -38,6 +38,38 @@ TRANSPORTS = {
     "Skates": dict(clip="Bob_SkateGlide", gaits=(("movement", "walk_skates", ""), ("run", "run_skates", "Run"), ("sprint", "sprint_skates", "Run")), idle="Bob_SkateIdle"),
     "Uni": dict(clip="Bob_UniRide", gaits=(("movement", "walk_uni", ""), ("run", "run_uni", "Run"), ("sprint", "sprint_uni", "Run")), idle="Bob_UniIdle"),
 }
+# coast nodes (idle state): the rider glides on after stopping, one clip per gait and tier so the glide starts at the speed the rider was going
+COAST = """<?xml version="1.0" encoding="utf-8"?>
+<animNode>
+	<m_Name>{name}</m_Name>
+	<m_AnimName>{clip}</m_AnimName>
+	<m_Priority>20</m_Priority>
+	<m_ConditionPriority>20</m_ConditionPriority>
+	<m_deferredBoneAxis>Y</m_deferredBoneAxis>
+	<m_BlendTime>0.20</m_BlendTime>
+	<m_SyncTrackingEnabled>false</m_SyncTrackingEnabled>
+	<m_Conditions>
+		<m_Name>SkatesActive</m_Name>
+		<m_Type>BOOL</m_Type>
+		<m_Value>true</m_Value>
+	</m_Conditions>
+	<m_Conditions>
+		<m_Name>SkatesCoast</m_Name>
+		<m_Type>BOOL</m_Type>
+		<m_Value>true</m_Value>
+	</m_Conditions>
+	<m_Conditions>
+		<m_Name>SkatesCoastGait</m_Name>
+		<m_Type>STRING</m_Type>
+		<m_StringValue>{gait}</m_StringValue>
+	</m_Conditions>
+{tier}</animNode>
+"""
+for gait in ("", "Run"):
+    for level, tier in enumerate(("", "T1", "T2")):
+        name = "coast_skates" + ("_run" if gait else "") + ("" if not level else f"_t{level}")
+        text = COAST.format(name=name, clip=f"Bob_SkateCoast{gait}{tier}", gait=gait or "walk", tier=TIER.format(var="Skates", level=level))
+        (BASE / "idle" / (name + ".xml")).write_text(text, encoding="utf-8"); print("wrote idle", name)
 for var, t in TRANSPORTS.items():
     for folder, stem, suffix in t["gaits"]:
         for level, tier in enumerate(("", "T1", "T2")):
