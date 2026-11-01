@@ -12,13 +12,8 @@ RL = pathlib.Path(os.environ.get("PZ_RL_REPO", r"C:\bench\project-zomboid-rl-bas
 ARENA = (5385, 10114)   # the RL harness's bare dirt field (5377,10114; its west corner has traffic cones, so start 8 tiles east); the old arena at 10770,9410 sits beside a house, shed and playground, and 4010,11767 is a crop field that hides the rider; the character otherwise resumes wherever it was left
 USER = "Smoke1"   # fresh account: a dead character from an earlier run would otherwise be reused
 ITEMS = ["ImpracticalTransport.PogoStick", "ImpracticalTransport.Tricycle", "ImpracticalTransport.Unicycle", "ImpracticalTransport.RollerSkates"]
-# throw-away rotate calibration set, only present while tools/make_calibration.py has generated it
-CAL = MOD / "42/media/scripts/ImpracticalTransport_calibration_items.txt"
-ITEMS += [f"ImpracticalTransport.{n}" for n in re.findall(r"item (PogoCal\d+)", CAL.read_text(encoding="utf-8") if CAL.exists() else "")]
-TRIKE_CAL = MOD / "42/media/scripts/ImpracticalTransport_trike_cal_items.txt"      # throw-away, see tools/make_trike_calibration.py
-ITEMS += [f"ImpracticalTransport.{n}" for n in re.findall(r"item (TrikeCal\d+)", TRIKE_CAL.read_text(encoding="utf-8") if TRIKE_CAL.exists() else "")]
 TILT_CAL = MOD / "42/media/scripts/ImpracticalTransport_tilt_cal_items.txt"      # throw-away, see tools/make_tilt_calibration.py
-ITEMS += [f"ImpracticalTransport.{n}" for n in re.findall(r"item (UniCal\d+)", TILT_CAL.read_text(encoding="utf-8") if TILT_CAL.exists() else "")]
+ITEMS += [f"ImpracticalTransport.{n}" for n in re.findall(r"item ((?:Uni|Pogo)Cal\d+)", TILT_CAL.read_text(encoding="utf-8") if TILT_CAL.exists() else "")]
 VEHICLES = []   # the tricycle vehicle script is parked while the transports move to held items
 ERR = re.compile(r"ERROR|Exception|WARN.*(script|model|texture)", re.I)
 
