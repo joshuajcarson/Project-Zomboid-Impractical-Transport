@@ -26,7 +26,6 @@ local PROFILES = {
 
 -- throw-away calibration variants (tools/make_calibration.py): same behaviour as the real stick
 for i = 1, 7 do PROFILES["ImpracticalTransport.PogoCal" .. i] = PROFILES["ImpracticalTransport.PogoStick"] end
-for i = 1, 4 do PROFILES["ImpracticalTransport.TrikeCal" .. i] = PROFILES["ImpracticalTransport.Tricycle"] end
 
 -- Ground under the rider, first match wins (lower-cased FloorMaterial property plus floor sprite name). Every number is a multiplier on top
 -- of the profile and of whatever vanilla already slows walking by: speed scales the hop, stumble scales the trip chance (endurance drain
