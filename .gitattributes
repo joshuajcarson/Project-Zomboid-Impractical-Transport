@@ -1,0 +1,13 @@
+# One line-ending rule for the whole repo: LF in the repo and in checkouts (the game and the tools read LF fine on Windows)
+* text=auto eol=lf
+
+# Generated assets: text DirectX .X files are written by tools/blender/*.py and are never merged by hand. Diffs of them are noise, so collapse them in
+# pull requests and let a conflict take the regenerated version.
+*.X linguist-generated=true -diff merge=binary
+*.x linguist-generated=true -diff merge=binary
+
+# Real binaries
+*.png binary
+*.jpg binary
+*.gif binary
+*.ogg binary
