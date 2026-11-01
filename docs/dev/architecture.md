@@ -26,3 +26,7 @@ Lessons baked into the test: the server checksums scripts, so any mod edit needs
 
 Human validation queue: `docs/human-testing-queue.md` (what to test, what a pass looks like, decisions needed).
 
+
+
+## Live attachment tuner (2026-11-01)
+The game lets Lua edit a model script's attachment in memory: `getScriptManager():getModelScript("Base.<Model>"):getAttachmentById("Bip01_Prop1")` returns an object whose `getOffset()` and `getRotate()` are mutable `Vector3f`s (the vanilla debug attachment editor, `media/lua/client/DebugUIs/AttachmentEditorUI.lua`, edits the same ones). Verified: changing them moves the held model on screen immediately, no reboot. Tools: bot command `smokeattach|<Model>|ox,oy,oz,rx,ry,rz` (no values = log current) and `python scripts/attach_tune.py <Item> <Model> "<variant>" ...` which equips the item and makes a contact sheet (one row per variant, the four screen facings) in `previews/tune.png`. Values live in memory only; copy the winner into `ImpracticalTransport_models.txt`. Calibration rounds drop from a 10 minute boot each to about 15 seconds per variant.

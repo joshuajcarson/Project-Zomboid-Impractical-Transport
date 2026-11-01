@@ -78,7 +78,7 @@ def limb(root, mid, end, target_world, pole_world, foot, Rm=None):
 # --- the skating pose
 STRIDE = 0.22 * s         # how far a foot slides forward and back of the hips
 CROUCH = 0.06 * s         # the hips drop with bent knees
-RAISE = 0.034             # the wheels hang this far below the sole (tools/blender/skates_model.py): the whole rider is lifted by it
+RAISE = 0.048             # the wheels hang this far below the sole (tools/blender/skates_model.py): the whole rider is lifted by it
 ARM = 0.16 * s            # arm swing, opposite to the legs
 Rlean = Matrix.Rotation(LEAN, 3, up.cross(fwd))   # a positive turn tips the top forward
 Rlean_m = Mi.to_3x3() @ Rlean @ arm.matrix_world.to_3x3()

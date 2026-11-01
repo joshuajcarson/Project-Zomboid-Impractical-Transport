@@ -329,6 +329,29 @@ commands.smokeunwear = function(p, a)
     return true, "queued"
 end
 
+-- smokeattach|ModelName|ox,oy,oz,rx,ry,rz: LIVE attachment tuner. Sets the offset and rotate of a model script's Bip01_Prop1 attachment in the running game (the same
+-- Vector3f objects the vanilla debug attachment editor edits); no value = just log the current ones. ModelName without the module is looked up in Base ("Unicycle_3d").
+commands.smokeattach = function(p, a)
+    local name = (a and a.a) or "Unicycle_3d"
+    if not name:find(".", 1, true) then name = "Base." .. name end
+    local script = getScriptManager():getModelScript(name)
+    if not script then return false, "no model script " .. name end
+    local attach = script:getAttachmentById("Bip01_Prop1")
+    if not attach then return false, "no Bip01_Prop1 attachment on " .. name end
+    local v = a and a.b
+    if v and v ~= "" then
+        local n = {}
+        for x in tostring(v):gmatch("[^,]+") do n[#n + 1] = tonumber(x) end
+        if #n ~= 6 then return false, "need ox,oy,oz,rx,ry,rz" end
+        attach:getOffset():set(n[1], n[2], n[3])
+        attach:getRotate():set(n[4], n[5], n[6])
+    end
+    local o, r = attach:getOffset(), attach:getRotate()
+    local msg = string.format("ATTACH %s offset %.4f %.4f %.4f rotate %.4f %.4f %.4f", name, o:x(), o:y(), o:z(), r:x(), r:y(), r:z())
+    print(msg)
+    return true, msg
+end
+
 -- smokecalm|1/0: no random slips or stumbles (speed measurements); forced ones (smokeslip, smokestumble) still happen
 commands.smokecalm = function(p, a)
     ImpracticalTransport.calm = (a and a.a) ~= "0"
