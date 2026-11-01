@@ -7,6 +7,16 @@ Items: `PogoStick`, `Tricycle`, `Unicycle`.
 
 What I already checked in game (2026-11-01, screenshots, so you can skip the obvious): the unicycle with the rider facing the screen has a vertical wheel and fork and an upright rider (A1 looks fixed), both arms out (A4), legs beside the tyre without pedals (A3), the mount goes stand, hand on the seat, then settles on the saddle (A5, the final arm looked bent up from behind: check it from the front), the dismount shows the unicycle swinging in the hand while it is put away (A6). The pedal direction (A2) is clockwise by the clip's maths but I could not read it from 10 fps frames, so it is yours to confirm. The smoke test passes for all three transports. The game is left running with the unicycle equipped.
 
+## Round 2 (2026-11-01 after your round 1 notes): what I changed, please re-test these
+I checked uprightness myself at the four real screen facings (SE, NE, SW, NW) with the rider at rest: all three held models are now upright (`previews/calibration/tilt.png`; cause: the held-item bone is rolled 16.8 degrees about the rider's forward axis, measured in Blender and found by a six-variant sweep in game; the pogo's old 102 was also wrong, 90 is upright). The smoke test passes for all three transports.
+- A1, A3, A7, A9, A10: tilt fixed as above. A9 also: tricycle seat much lower, hips down, torso leaning back, hands up on the bars (adult on a child's toy).
+- A4 (unicycle arms): reach shortened to stop the right elbow popping, arms now drift gently, and the rest pose has a slow arm drift too.
+- A1 (unicycle saddle): thinner and narrower. A12: unicycle icon redrawn side-on and tilted.
+- A8: tricycle pedals now go clockwise like the unicycle (A2 passed).
+- B2 (tricycle slip): now the rider and trike tip back about the rear axle (front wheel up) while the torso tilts back, then settle; about 1 in 4 slips tips into a backwards fall (more when running or winded). B3: falls now come from this.
+- B4 (unicycle): the wobble no longer spins the feet faster; it is a lurch with flailing arms at half pace about every 10 s, and a real fall about every 50 s (more when running). B5: pogo rate left at one per 80 s as you asked; test for longer than a minute.
+Still not done: A6 dismount (experiment pending), roller skates (worn), sprint question B7, ground types and weight (C1-C3, I will test those in the harness).
+
 ## A. Looks (stand still, then walk in each direction; face the screen with S)
 
 | # | Item | What to check | Pass looks like | Result |
