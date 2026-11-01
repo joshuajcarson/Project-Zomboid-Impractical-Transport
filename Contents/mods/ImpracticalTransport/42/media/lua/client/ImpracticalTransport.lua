@@ -21,9 +21,10 @@ local PROFILES = {
     ["ImpracticalTransport.Tricycle"] = {
         name = "Trike", mount = false,
         speed = { [""] = 0.58, Run = 0.78 },
+        slip = 0.03, slipRun = 2.0, slipSeconds = { 1.0, 2.0 },      -- pedal slip: chance per second, run multiplier, how long the trike goes nowhere
         tier1 = 0.8, tier2 = 0.5,
         drain = 0.003, drainRun = 1.5, drainSprint = 1.5,
-        stumble = 0.004, stumbleRun = 3.0, stumbleSprint = 3.0,
+        stumble = 0.0015, stumbleRun = 3.0, stumbleSprint = 3.0,      -- falling back off the seat is rare; slipping is the common failure
     },
 }
 
@@ -100,6 +101,7 @@ local lastKind = {}      -- the Name of the last transport held, so its Active v
 local stumbleAfter = {}
 local lastReport = {}
 local lastPace = {}
+local stallUntil = {}
 local TIER_SPEED = { ["0"] = 1.0, ["1"] = 0.6, ["2"] = 0.3 }      -- what the T1 and T2 clips scale the travel by
 local STUMBLE_COOLDOWN_SECONDS = 20
 local TRANSITION_SECONDS = 0.8     -- length of Bob_PogoMount / Bob_PogoDismount (24 frames at 30 fps)
@@ -123,6 +125,14 @@ function ImpracticalTransport.stumble(player)
     local stats = player:getStats()
     stats:set(CharacterStat.ENDURANCE, math.max(0, stats:get(CharacterStat.ENDURANCE) - 0.1))
     print("ImpracticalTransport stumble")
+end
+
+-- The pedals lose their grip: the feet spin for a second or two (Bob_TrikeSlip, no travel) and the trike stands still, then it goes on.
+function ImpracticalTransport.slip(player, profile)
+    local seconds = ZombRandFloat(profile.slipSeconds[1], profile.slipSeconds[2])
+    stallUntil[player:getPlayerNum()] = getTimestampMs() + seconds * 1000
+    player:setVariable(profile.name .. "Stall", true)
+    print(string.format("ImpracticalTransport slip %.1fs", seconds))
 end
 
 function ImpracticalTransport.getProfile(player)
@@ -158,7 +168,14 @@ Events.OnPlayerUpdate.Add(function(player)
         transitionUntil[num] = nil
         player:setVariable("PogoTransition", "")
     end
-    if not active then return end
+    if not active then
+        if stallUntil[num] then stallUntil[num] = nil; player:setVariable(kind .. "Stall", false) end
+        return
+    end
+    if stallUntil[num] and getTimestampMs() > stallUntil[num] then
+        stallUntil[num] = nil
+        player:setVariable(profile.name .. "Stall", false)
+    end
 
     local stats = player:getStats()
     local endurance = stats:get(CharacterStat.ENDURANCE)
@@ -192,6 +209,10 @@ Events.OnPlayerUpdate.Add(function(player)
         local perSecond = profile.drain * (profile["drain" .. gait] or 1) * (1.5 - fitness * 0.05) / math.max(0.2, terrain)   -- fitter riders tire slower, never zero; slow ground tires more
         stats:set(CharacterStat.ENDURANCE, math.max(0, endurance - perSecond * GameTime.getInstance():getTimeDelta()))
 
+        if ImpracticalTransport.calm then return end      -- tests set this to measure speed without random slips and falls (forced ones still work)
+        if profile.slip and not stallUntil[num] and ZombRandFloat(0, 1) < profile.slip * (profile["slip" .. gait] or 1) * (1 + (1 - endurance) * 4) * ground.stumble * GameTime.getInstance():getTimeDelta() then
+            ImpracticalTransport.slip(player, profile)
+        end
         -- stumbles: rarer for fit riders, much likelier once winded, never twice within the cooldown
         local now = getTimestampMs()
         if now >= (stumbleAfter[num] or 0) then

@@ -87,7 +87,9 @@ end
 commands.smokeview = function(p, a)
     local steps = tonumber(a and a.a) or 6
     local ok, err = pcall(function()
+        ISUIHandler.setVisibleAllUI(true)      -- the handler skips a hide it believes is done: a chat message pops the chat back up behind its back
         ISUIHandler.setVisibleAllUI(false)
+        if ISChat and ISChat.instance then ISChat.instance:setVisible(false) end
         local before = getCore():getZoom(0)
         for _ = 1, math.abs(steps) do getCore():doZoomScroll(0, steps > 0 and -1 or 1) end
         print("smokeview zoom " .. tostring(before) .. " -> " .. tostring(getCore():getZoom(0)))
@@ -249,6 +251,20 @@ commands.smokeweather = function(p, a)
     local msg = string.format("WEATHER raining=%s precipitation=%.2f", tostring(clim:isRaining()), clim:getClimateFloat(3):getInternalValue())
     print(msg)
     return true, msg
+end
+
+-- smokeslip: force a pedal slip on the held tricycle (logs "ImpracticalTransport slip")
+commands.smokeslip = function(p, a)
+    local profile = ImpracticalTransport.getProfile(p)
+    if not (profile and profile.slip) then return false, "no slipping transport in hand" end
+    ImpracticalTransport.slip(p, profile)
+    return true, "slip"
+end
+
+-- smokecalm|1/0: no random slips or stumbles (speed measurements); forced ones (smokeslip, smokestumble) still happen
+commands.smokecalm = function(p, a)
+    ImpracticalTransport.calm = (a and a.a) ~= "0"
+    return true, "calm " .. tostring(ImpracticalTransport.calm)
 end
 
 -- smokehold|value: keep endurance at that level every update (god mode refills it), so the winded-rider tiers can be tested; no value = stop holding

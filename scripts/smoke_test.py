@@ -137,6 +137,7 @@ def stage_play(keep):
         lines or fail(f"{name}: no pace line in the client log")
         want = float(lines[-1]); print(f"{name}: measured {measured:.2f} tiles/s, mod expected {want:.2f}")
         want > 0 and abs(measured - want) > 0.3 * want and fail(f"{name} moves at {measured:.2f} tiles/s but the mod expects {want:.2f}")
+    bot("smokecalm", "1")      # random slips and falls would spoil the speed readings
     bot("smokeunequipaction"); time.sleep(4)
     walk = speed(12)
     bot("smokenode", "900")      # logs which anim nodes play, to see that the mount clip is chosen
@@ -146,7 +147,7 @@ def stage_play(keep):
     "mount_pogo/Bob_PogoMount" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("the mount anim node never played (see NODE lines in the client log)")
     pogo = speed(-12)
     expected_speed("pogo", pogo)
-    bot("smokestumble"); time.sleep(8)      # the fall animation has to finish before the unequip below is queued
+    bot("smokecalm", "0"); bot("smokestumble"); time.sleep(8)      # the fall animation has to finish before the unequip below is queued
     "ImpracticalTransport stumble" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("forced stumble never ran (see client log)")
     log = logs[-1].read_text(encoding="utf-8", errors="replace")
     errors = [l for l in log.splitlines() if "(MOD:Impractical Transport)" in l and "ERROR" in l] + re.findall(r"ImpracticalTransport \w+ disabled: .*", log)
@@ -166,11 +167,15 @@ def stage_play(keep):
     bot("smokechat", f"/removeitem ImpracticalTransport.PogoStick 0"); time.sleep(2)
     bot("smokechat", f'/additem "{USER}" {trike}'); time.sleep(4)
     bot("smokeequipaction", "Tricycle"); time.sleep(5)
-    trike_speed = speed(12)
+    bot("smokecalm", "1"); trike_speed = speed(12)
     expected_speed("tricycle", trike_speed)
     print(f"tricycle {trike_speed:.2f} tiles/s ({trike_speed / base:.0%} of the faster walk)")
     trike_speed > 0.1 or fail("tricycle rider did not move")
     trike_speed < base * 0.97 or fail("tricycle is not slower than walking")
+    bot("smokenode", "600"); p0 = pos(); bot("goto", f"{p0['x'] + 12:.1f}", f"{p0['y']:.1f}"); time.sleep(3)
+    bot("smokeslip"); time.sleep(4); slip_at = pos(); time.sleep(1); bot("stop"); time.sleep(1)
+    log = sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding="utf-8", errors="replace")
+    "slip_trike/Bob_TrikeSlip" in log or fail("the pedal slip node never played (see NODE lines in the client log)")
     bot("smokeunequipaction"); time.sleep(6); bot("smokechat", f"/removeitem {trike} 0"); time.sleep(2)
     bot("smokechat", f'/additem "{USER}" ImpracticalTransport.PogoStick'); time.sleep(4)
     bot("smokeequipaction", "PogoStick")   # leave it in hand for whoever plays next

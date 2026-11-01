@@ -128,6 +128,9 @@ for kind, frames in CYCLE.items():
         write_clip(f"Bob_TrikeRide{kind}{tier}", samples, frames, SPEED[kind] * (frames / FPS) / TILES_PER_TRAVEL_SECOND * tf)
 idle = pose(0.0)
 write_clip("Bob_TrikeIdle", {0: idle, 12: idle}, 12, 0)
+# pedal slip: the rider sits back and the feet spin twice as fast while the trike goes nowhere (zero travel); the Lua plays it for a second or two
+Rlean = Matrix.Rotation(math.radians(-10), 3, up.cross(fwd)); Rlean_m = Mi.to_3x3() @ Rlean @ arm.matrix_world.to_3x3()
+write_clip("Bob_TrikeSlip", {f: pose(2 * f / 24) for f in range(25)}, 24, 0)
 
 # --- preview: read the ride clip back with the game-format reader, place the tricycle, render frames
 bpy.ops.wm.read_factory_settings(use_empty=True)

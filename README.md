@@ -37,6 +37,10 @@ Lessons baked into the test: the server checksums scripts, so any mod edit needs
 - [x] T3 Per-second slowdown log (`ImpracticalTransport pace clip=.. tired=.. vanilla=.. ground=.. pace=.. tier=.. expected=..`; the smoke test fails if measured speed is >30% off the expected one for the pogo and the tricycle) (tired, vanilla, ground, pace, tier, expected tiles/s) and a smoke check comparing measured with expected
 - [x] T4 Tiers and stumble work for the tricycle (forced endurance 0.3 and 0.0 with `smokehold`: clips `Bob_TrikeRideT1/T2` play at 0.36 and 0.17 tiles/s against 0.35 and 0.17 expected; a forced stumble plays walkBumpFallFront, onback and back to the ride)
 - [x] T5 Rest pose seen in game (`Bob_TrikeIdle`, rider seated); the icon file renders correctly (a red tricycle), but the in-game inventory list is too small in the 640x480 window to find it: a human glance is still wanted
+**M1b (from the user, 2026-11-01): tricycle-specific failures.** A tricycle does not tip sideways; it fails by the rider leaning back.
+- [x] T6 Pedal slip (stall): for 1-2 s the feet spin and the trike does not move (a `TrikeStall` variable and a node playing a no-travel clip), then it resumes; much commoner than a fall
+- [x] T7 Falls only as a rare lean-back (the back fall, no side or forward fall), tuned lower than now
+- [x] Verified in game: forced slip plays `slip_trike/Bob_TrikeSlip` and the screenshot burst shows the rider sitting back, feet spinning, trike standing still (2026-11-01); the fall was seen in the node log (walkBumpFallFront > onback), not yet in a frame. `smokecalm 1` switches off random slips and falls for the speed checks
 **M2: next transport (roller skates), same pipeline.** Then unicycle, stilts, inflatable ball.
 Human-only checks stay in the testing queue below.
 
