@@ -35,4 +35,26 @@ Written before any test ran. The experiment uses separate throw-away items (`Pog
 
 ## Verdict
 
-(not yet run)
+**No-go: keep the single static model (2026-10-31).** Stopped after four rounds in game; the code is kept, unmerged, on the local branch `experiment/two-model-pogo` (delete it with `git branch -D experiment/two-model-pogo`).
+
+| # | Criterion | Result |
+|---|---|---|
+| 1 | Pair equips, both visible at rest | Pass. The upper half goes in the primary hand and the foot piece is equipped into the secondary hand by a real action; at rest the pair looks the same as the single model. |
+| 2 | Unequip clears both, ten times, no desync | Partly: one unequip cleared both hands and returned both items. Ten repeats not run. |
+| 3 | Missing foot piece | Not tested. |
+| 4 | Speed within 10% | Not measured. |
+| 5 | Stumble, both items intact | Items stayed intact, but the foot rod flew off to the side during the fall (see below). |
+| 6 | Mount and dismount | Not checked separately. |
+| 7 | Foot-to-pad distance varies by 20% or more | **Fail / not measurable**: the foot rod hung about 0.18 game units below the pads in every hop frame, detached from the stick, so its motion says nothing about the spring. |
+| 8 | No visible gap at rest or in the hop | **Fail**: gap in every hop frame. |
+| 9 | Extra Lua under about 60 lines | Pass (about 25 lines). |
+| 10 | Second inventory item is not confusing | Not settled: it adds an item the player can drop or lose, and the foot piece needs a server-side add in a real mod. |
+
+Findings that matter if this is ever retried:
+- With the clip putting `Bip01_Prop2` exactly on `Bip01_Prop1` and the same attachment on both models, the two models still did not coincide in game. So the engine does not apply a secondary-hand model the way a primary-hand one is applied (a mirror or a different frame for the left hand are the likeliest causes), and the placement convention is unknown. Getting it right needs more calibration rounds, each a full 5 to 6 minute boot.
+- Any vanilla animation that does not key Bip01_Prop2 (stumble, fall, get up, every action animation) puts the foot rod at the left hand: in the stumble burst it flew away from the stick. Fixing that would mean hiding or re-keying the foot piece in every state.
+- A second model per stick means every future transport needs the same pair, clip and companion logic.
+- Mesh export bug found on the way: a part joined onto a rotated rod came out turned, because the exporter wrote object-local coordinates; it must use world coordinates (`obj.matrix_world`).
+- Cost against benefit: the benefit is one visible spring compression; the single static model already shows the hop, and the rider's own crouch carries the impression of a spring.
+
+Evidence (git-ignored, local): `previews/split_rest3.png` (rest, both pieces), `previews/split_hop3_sheet.png` (hop, detached rod), `previews/split_hop2_sheet.png` (stumble, rod flying off), `previews/diag_sheet.png` (diagnostic items).
