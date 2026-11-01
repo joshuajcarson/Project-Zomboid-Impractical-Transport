@@ -52,4 +52,17 @@ module ImpracticalTransport
         MaxDamage = 0.2,
         Tags = ImpracticalTransport;
     }
+
+    /* Roller skates: a worn shoe item (experiment, first step: no model of their own yet). The Lua sees them in the shoes slot and puts the rider in the skating state. */
+    item RollerSkates
+    {
+        DisplayCategory = Clothing,
+        ItemType = base:clothing,
+        Icon = Shoes,
+        BodyLocation = base:shoes,
+        ClothingItem = RollerSkates,
+        BloodLocation = Shoes,
+        Weight = 1.5,
+        Tags = ImpracticalTransport;
+    }
 }

@@ -27,6 +27,14 @@ local PROFILES = {
         drain = 0.003, drainRun = 1.5, drainSprint = 1.5,
         stumble = 0.0015, stumbleRun = 3.0, stumbleSprint = 3.0,      -- falling back off the seat is rare; slipping is the common failure
     },
+    -- roller skates are WORN (shoes slot), not held: no aiming block, no mount clips; speed and falls like the others
+    ["ImpracticalTransport.RollerSkates"] = {
+        name = "Skates", worn = true, mount = false,
+        speed = { [""] = 0.6, Run = 0.9 },
+        tier1 = 0.8, tier2 = 0.5,
+        drain = 0.003, drainRun = 1.5, drainSprint = 1.5,
+        stumble = 0.01, stumbleRun = 4.0, stumbleSprint = 4.0,
+    },
     -- a unicycle: balance is the whole job, so it wobbles often and falls more than the tricycle
     ["ImpracticalTransport.Unicycle"] = {
         name = "Uni", mount = true, transitionSeconds = 1.1,
@@ -179,14 +187,24 @@ end
 
 function ImpracticalTransport.getProfile(player)
     local item = player:getPrimaryHandItem()
-    return item and PROFILES[item:getFullType()] or nil
+    local held = item and PROFILES[item:getFullType()]
+    if held then return held end
+    return guarded("worn", function()
+        local worn = player:getWornItems()
+        for i = 0, worn:size() - 1 do
+            local wornItem = worn:get(i):getItem()
+            local profile = wornItem and PROFILES[wornItem:getFullType()]
+            if profile and profile.worn then return profile end
+        end
+        return nil
+    end, nil)
 end
 
 Events.OnPlayerUpdate.Add(function(player)
     local profile = ImpracticalTransport.getProfile(player)
     local num = player:getPlayerNum()
     -- a pogo stick is not a weapon: no aiming, no swinging while it is in hand (the weapon poses would hold it at odd angles)
-    local isHeld = profile ~= nil
+    local isHeld = profile ~= nil and not profile.worn      -- a worn transport (skates) leaves aiming and swinging alone
     if isHeld ~= (held[num] or false) then
         held[num] = isHeld
         player:setIgnoreAimingInput(isHeld)
@@ -194,7 +212,7 @@ Events.OnPlayerUpdate.Add(function(player)
     end
     if profile then lastKind[num] = profile.name end
     local kind = lastKind[num]
-    local active = isHeld and not busy(player)
+    local active = profile ~= nil and not busy(player)
     if active ~= (riding[num] or false) then
         riding[num] = active
         player:setVariable(kind .. "Active", active)

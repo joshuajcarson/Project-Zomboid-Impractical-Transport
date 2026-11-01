@@ -304,6 +304,23 @@ commands.smokescan = function(p, a)
     return true, "scanned " .. #order .. " kinds"
 end
 
+-- smokewear|Type: wear a clothing item from the inventory like a player (a real timed action)
+commands.smokewear = function(p, a)
+    local item = p:getInventory():getFirstTypeRecurse((a and a.a) or "")
+    if not item then return false, "not in inventory" end
+    ISTimedActionQueue.add(ISWearClothing:new(p, item, 50))
+    return true, "queued"
+end
+
+-- smokeworn: log what is worn and the transport variables ("WORN <type> ... SkatesActive=..")
+commands.smokeworn = function(p, a)
+    local worn = p:getWornItems()
+    local names = {}
+    for i = 0, worn:size() - 1 do names[#names + 1] = tostring(worn:get(i):getItem():getFullType()) end
+    print("WORN " .. table.concat(names, " ") .. " SkatesActive=" .. tostring(p:getVariableBoolean("SkatesActive")) .. " profile=" .. tostring(ImpracticalTransport.getProfile(p) and ImpracticalTransport.getProfile(p).name))
+    return true, "logged"
+end
+
 -- smokecalm|1/0: no random slips or stumbles (speed measurements); forced ones (smokeslip, smokestumble) still happen
 commands.smokecalm = function(p, a)
     ImpracticalTransport.calm = (a and a.a) ~= "0"
