@@ -30,7 +30,7 @@ local PROFILES = {
     -- roller skates are WORN (shoes slot), not held: no aiming block, no mount clips; speed and falls like the others
     ["ImpracticalTransport.RollerSkates"] = {
         name = "Skates", worn = true, mount = false,
-        paved = 2.3, tierFast = 1.4,      -- on pavement: speed x2.3 (about 10 percent faster than walking), the "F" clips
+        paved = 2.6, tierFast = 1.4,      -- on pavement: speed x2.6 (a little faster than bare walking), the "F" clips
         speed = { [""] = 0.7, Run = 1.0 },
         stopFall = { walk = 0.05, run = 0.25 },      -- chance that stopping ends in a fall (winded riders and bad ground make it likelier)
         coast = { walk = 0.6, run = 1.2 },      -- seconds the rider keeps gliding after the keys are released: the length of Bob_SkateCoast / Bob_SkateCoastRun (tools/blender/skates_glide.py), which start at the skating speed and ease to zero
@@ -161,7 +161,7 @@ local stallUntil = {}
 local coastUntil = {}
 local coastFrom = {}
 local wasMoving = {}
-local TIER_SPEED = { ["0"] = 1.0, ["1"] = 0.6, ["2"] = 0.3, ["3"] = 2.3 }      -- what the T1 and T2 clips scale the travel by (3 = the fast clips on pavement, skates only)
+local TIER_SPEED = { ["0"] = 1.0, ["1"] = 0.6, ["2"] = 0.3, ["3"] = 2.6 }      -- what the T1 and T2 clips scale the travel by (3 = the fast clips on pavement, skates only)
 local STUMBLE_COOLDOWN_SECONDS = 20
 local TRANSITION_SECONDS = 0.8     -- length of Bob_PogoMount / Bob_PogoDismount (24 frames at 30 fps)
 

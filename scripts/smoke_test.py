@@ -194,6 +194,17 @@ def stage_play(keep):
     bot("smokenode", "700"); p0 = pos(); bot("goto", f"{p0['x'] + 12:.1f}", f"{p0['y']:.1f}"); time.sleep(5); bot("stop"); time.sleep(3)
     log = sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding="utf-8", errors="replace")
     "coast_skates/Bob_SkateCoast" in log or fail("the skates coast node never played after stopping (see NODE lines in the client log)")
+    # pavement is where skates beat walking: the parking lot (scripts/test_places.json), best of three walks (a parked car can block one), then back to the arena
+    bot("tp", "7740", "11755"); time.sleep(20)
+    def cruise(dx):
+        """speed over the middle of a long walk (after a 1.5 s run-in, for 3.5 s): the 8 s whole-walk average of speed() reads low for anything that reaches the goal early"""
+        p0 = pos(); bot("goto", f"{p0['x'] + dx:.1f}", f"{p0['y']:.1f}"); time.sleep(1.5)
+        a = pos(); t0 = time.time(); time.sleep(3.5); b = pos(); v = math.hypot(b["x"] - a["x"], b["y"] - a["y"]) / (time.time() - t0)
+        bot("stop"); time.sleep(2); return v
+    paved = max(cruise(20) for _ in range(3))
+    print(f"skates on pavement {paved:.2f} tiles/s against {skate_speed:.2f} on dirt and {base:.2f} bare walking")
+    bot("tp", str(ARENA[0]), str(ARENA[1])); time.sleep(15)
+    paved > skate_speed * 1.5 or fail("skates are not clearly faster on pavement than on dirt")
     bot("smokeunwear", "RollerSkates"); time.sleep(5); bot("smokechat", "/removeitem ImpracticalTransport.RollerSkates 0"); time.sleep(2)
     bot("smokechat", f'/additem "{USER}" ImpracticalTransport.PogoStick'); time.sleep(4)
     bot("smokeequipaction", "PogoStick")   # leave it in hand for whoever plays next
