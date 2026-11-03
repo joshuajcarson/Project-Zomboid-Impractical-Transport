@@ -65,4 +65,17 @@ module ImpracticalTransport
         Weight = 1.5,
         Tags = ImpracticalTransport;
     }
+
+    /* Stilts: worn like the skates (shoes slot). Model, texture and icon come from tools/blender/stilts_model.py, gait from stilts_gait.py. */
+    item Stilts
+    {
+        DisplayCategory = Clothing,
+        ItemType = base:clothing,
+        Icon = Stilts,
+        BodyLocation = base:shoes,
+        ClothingItem = Stilts,
+        BloodLocation = Shoes,
+        Weight = 3.0,
+        Tags = ImpracticalTransport;
+    }
 }

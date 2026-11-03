@@ -38,6 +38,15 @@ local PROFILES = {
         drain = 0.003, drainRun = 1.5, drainSprint = 1.5,
         stumble = 0.01, stumbleRun = 4.0, stumbleSprint = 4.0,
     },
+    -- stilts: worn like skates. Much slower than walking, falls often, and soft ground counts double (groundPow squares the SURFACES numbers: grass 0.81, sand 0.25, mud 0.12)
+    ["ImpracticalTransport.Stilts"] = {
+        name = "Stilts", worn = true, mount = false,
+        groundPow = 2,
+        speed = { [""] = 0.55, Run = 0.8 },
+        tier1 = 0.8, tier2 = 0.5,
+        drain = 0.005, drainRun = 1.6, drainSprint = 1.6,
+        stumble = 0.025, stumbleRun = 3.0, stumbleSprint = 4.0,
+    },
     -- a unicycle: balance is the whole job, so it wobbles often and falls more than the tricycle
     ["ImpracticalTransport.Unicycle"] = {
         name = "Uni", mount = true, transitionSeconds = 1.1,
@@ -289,6 +298,7 @@ Events.OnPlayerUpdate.Add(function(player)
     -- whatever slows walking slows the hop too: the engine's own slowdown values, then the ground, all multiplied together
     local vanilla = vanillaSlowdown(player)
     local ground = groundAt(player:getCurrentSquare())
+    if profile.groundPow then ground = { speed = ground.speed ^ profile.groundPow, stumble = ground.stumble ^ profile.groundPow, paved = ground.paved } end      -- stilts: soft ground hurts twice as much
     local terrain = vanilla * ground.speed
     local report = string.format("vanilla=%.2f ground=%.2f", vanilla, ground.speed)
     if report ~= lastReport[num] then lastReport[num] = report; print("ImpracticalTransport terrain " .. report) end

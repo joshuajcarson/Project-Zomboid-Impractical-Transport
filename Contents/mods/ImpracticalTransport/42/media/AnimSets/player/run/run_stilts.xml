@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animNode>
+	<m_Name>run_stilts</m_Name>
+	<m_AnimName>Bob_StiltsWalkRun</m_AnimName>
+	<m_Priority>10</m_Priority>
+	<m_ConditionPriority>10</m_ConditionPriority>
+	<m_deferredBoneAxis>Y</m_deferredBoneAxis>
+	<m_BlendTime>0.40</m_BlendTime>
+	<m_SyncTrackingEnabled>false</m_SyncTrackingEnabled>
+	<m_Conditions>
+		<m_Name>StiltsActive</m_Name>
+		<m_Type>BOOL</m_Type>
+		<m_Value>true</m_Value>
+	</m_Conditions>
+	<m_Conditions>
+		<m_Name>isMoving</m_Name>
+		<m_Type>BOOL</m_Type>
+		<m_Value>true</m_Value>
+	</m_Conditions>
+	<m_Conditions>
+		<m_Name>StiltsTier</m_Name>
+		<m_Type>STRING</m_Type>
+		<m_StringValue>0</m_StringValue>
+	</m_Conditions>
+</animNode>

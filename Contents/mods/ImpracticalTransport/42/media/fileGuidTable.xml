@@ -4,4 +4,8 @@
 		<path>media/clothing/clothingItems/RollerSkates.xml</path>
 		<guid>e6a3f7a2-5d1b-4c8e-9a47-1f0b6c2d8e51</guid>
 	</files>
+	<files>
+		<path>media/clothing/clothingItems/Stilts.xml</path>
+		<guid>5b0c9d3e-7a42-4f6b-8e15-c2d9a4f01b73</guid>
+	</files>
 </fileGuidTable>

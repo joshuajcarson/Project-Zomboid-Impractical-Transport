@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<clothingItem>
+	<m_MaleModel>media\models_X\ImpracticalTransport\Stilts.X</m_MaleModel>
+	<m_FemaleModel>media\models_X\ImpracticalTransport\Stilts.X</m_FemaleModel>
+	<m_GUID>5b0c9d3e-7a42-4f6b-8e15-c2d9a4f01b73</m_GUID>
+	<m_Static>false</m_Static>
+	<m_AllowRandomHue>false</m_AllowRandomHue>
+	<m_AllowRandomTint>false</m_AllowRandomTint>
+	<m_AttachBone></m_AttachBone>
+	<m_MasksFolder>none</m_MasksFolder>
+	<textureChoices>ImpracticalTransport\Stilts_texture</textureChoices>
+</clothingItem>
