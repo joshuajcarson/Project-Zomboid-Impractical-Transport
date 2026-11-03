@@ -48,5 +48,13 @@ for f in (MEDIA / "scripts").glob("*.txt"):
         if icon in ("Shoes",): continue      # vanilla icon
         (MEDIA / "textures" / f"Item_{icon}.png").exists() or bad(f"{f.name}: Icon {icon} has no textures/Item_{icon}.png")
 
+# Loot: every list the loot file uses is in our verified names file, every item is one of ours.
+loot = (MEDIA / "lua/server/ImpracticalTransportLoot.lua").read_text(encoding="utf-8")
+known_lists = {l.strip() for l in (ROOT / "scripts/loot_list_names.txt").read_text(encoding="utf-8").splitlines() if l.strip() and not l.startswith("#")}
+our_items = set(re.findall(r"^\s*item\s+(\w+)", (MEDIA / "scripts/ImpracticalTransport_items.txt").read_text(encoding="utf-8"), re.M))
+for lst, body in re.findall(r"^    (\w+) = \{(.*)\},?\s*$", loot, re.M):
+    lst in known_lists or bad(f"ImpracticalTransportLoot.lua: list {lst} is not in scripts/loot_list_names.txt")
+    for item in re.findall(r"(\w+) = [\d.]+", body): item in our_items or bad(f"ImpracticalTransportLoot.lua: item {item} is not in ImpracticalTransport_items.txt")
+
 print("\n".join(problems) if problems else "repo checks ok")
 sys.exit(1 if problems else 0)

@@ -417,3 +417,26 @@ commands.smokeinv = function(p, a)
     print("INV " .. table.concat(names, " "))
     return true, "logged"
 end
+
+-- smokeloot|ListName|n: roll the vanilla procedural list `ListName` n times (default 500) into fresh containers, like the game's own loot stress test (ISLootStressTestUI), and log
+-- how many containers held each of our items ("LOOT list n=.. PogoStick=.. ..."). Compare with the weights in ImpracticalTransportLoot.lua. Never run yet.
+commands.smokeloot = function(p, a)
+    local list, n = (a and a.a) or "BedroomDresserChild", tonumber(a and a.b) or 500
+    local dist = ProceduralDistributions.list[list]
+    if not dist then return false, "no list " .. list end
+    local hit = {}
+    for _ = 1, n do
+        local c = ItemContainer.new("smokeloot", p:getCurrentSquare(), p)
+        ItemPickerJava.doRollItem(dist, c, 1, p, true, false)
+        local seen = {}
+        for i = 0, c:getItems():size() - 1 do
+            local t = c:getItems():get(i):getFullType()
+            if t:find("ImpracticalTransport", 1, true) and not seen[t] then seen[t] = true; hit[t] = (hit[t] or 0) + 1 end
+        end
+    end
+    local out = {}
+    for t, k in pairs(hit) do out[#out + 1] = t:gsub("ImpracticalTransport%.", "") .. "=" .. k end
+    local msg = "LOOT " .. list .. " n=" .. n .. " " .. table.concat(out, " ")
+    print(msg)
+    return true, msg
+end
