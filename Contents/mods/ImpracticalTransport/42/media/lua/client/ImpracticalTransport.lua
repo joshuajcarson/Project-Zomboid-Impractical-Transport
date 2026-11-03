@@ -16,6 +16,9 @@ local PROFILES = {
         tier1 = 0.8, tier2 = 0.5,
         drain = 0.0035, drainRun = 1.6, drainSprint = 2.5,
         stumble = 0.0125, stumbleRun = 3.0, stumbleSprint = 6.0,
+        -- bounce: every hop clip is 24 frames at 30 fps (tools/blender/pogo_hop.py), so one landing every `period` seconds at every gait and tier. The sound itself is the
+        -- PlaySound event on the move nodes (tools/make_gait_nodes.py); this table drives the zombie noise: noiseRadius tiles per landing, 0 = silent to zombies
+        bounce = { period = 0.8, landing = 0.83, noiseRadius = 12 },
     },
     -- a child's tricycle under a grown rider: slow and tiring, but it rarely throws the rider
     ["ImpracticalTransport.Tricycle"] = {
@@ -157,6 +160,8 @@ function ISUnequipAction:start()
     vanillaUnequipStart(self)
 end
 local lastPace = {}
+local nextBounce = {}
+local bounceCount = {}
 local stallUntil = {}
 local coastUntil = {}
 local coastFrom = {}
@@ -308,6 +313,24 @@ Events.OnPlayerUpdate.Add(function(player)
         local base = profile.speed and profile.speed[clipGait]
         print(string.format("ImpracticalTransport pace clip=%s gait=%s tired=%.2f vanilla=%.2f ground=%.2f pace=%.2f tier=%s expected=%.2f",
             clip, gait == "" and "walk" or gait, tired, vanilla, ground.speed, pace, tier, base and base * TIER_SPEED[tier] or -1))
+    end
+
+    -- one landing per hop: a free-running timer locked to the clip period (starts when the rider starts moving; a gait or tier change swaps clips but not the period)
+    local bounce = profile.bounce
+    if bounce and player:isPlayerMoving() then
+        local at, step = nextBounce[num], bounce.period * 1000
+        if not at then
+            nextBounce[num] = nowMs + bounce.landing * step
+        elseif nowMs >= at then
+            nextBounce[num] = nowMs - at > step and nowMs + step or at + step      -- after a long stall, start over instead of firing a burst
+            bounceCount[num] = (bounceCount[num] or 0) + 1
+            print(string.format("ImpracticalTransport bounce %d t=%d", bounceCount[num], nowMs))
+            if bounce.noiseRadius > 0 then
+                guarded("noise", function() addSound(player, player:getX(), player:getY(), player:getZ(), bounce.noiseRadius, bounce.noiseRadius) end)
+            end
+        end
+    else
+        nextBounce[num] = nil
     end
 
     if player:isPlayerMoving() then
