@@ -9,7 +9,7 @@ NODE = """<?xml version="1.0" encoding="utf-8"?>
 	<m_Name>{name}</m_Name>
 	<m_AnimName>{clip}</m_AnimName>
 	<m_Priority>10</m_Priority>
-	<m_ConditionPriority>10</m_ConditionPriority>
+	<m_ConditionPriority>{cprio}</m_ConditionPriority>
 	<m_deferredBoneAxis>Y</m_deferredBoneAxis>
 	<m_BlendTime>0.40</m_BlendTime>
 	<m_SyncTrackingEnabled>false</m_SyncTrackingEnabled>
@@ -23,12 +23,20 @@ NODE = """<?xml version="1.0" encoding="utf-8"?>
 		<m_Type>BOOL</m_Type>
 		<m_Value>{moving}</m_Value>
 	</m_Conditions>
-{tier}</animNode>
+{tier}{sprint}</animNode>
 """
 TIER = """	<m_Conditions>
 		<m_Name>{var}Tier</m_Name>
 		<m_Type>STRING</m_Type>
 		<m_StringValue>{level}</m_StringValue>
+	</m_Conditions>
+"""
+# The Lua sets <Name>Sprint when the sprint key is held but the engine stayed in the run state (see ImpracticalTransport.lua): the run folder then plays the
+# sprint clip. Only the pogo has a sprint clip of its own; the others sprint with the run clip, so they need no such node.
+SPRINT = """	<m_Conditions>
+		<m_Name>{var}Sprint</m_Name>
+		<m_Type>BOOL</m_Type>
+		<m_Value>{value}</m_Value>
 	</m_Conditions>
 """
 # per transport: variable prefix, clip name prefix, and for each gait (folder, file stem, clip suffix)
@@ -75,8 +83,12 @@ for var, t in TRANSPORTS.items():
         for level, tier in enumerate(t.get("tiers", ("", "T1", "T2"))):
             file = stem + ("" if not level else f"_t{level}")
             name = file.replace("defaultSprint_pogo", "sprint_pogo")
-            text = NODE.format(name=name, clip=f"{t['clip']}{suffix}{tier}", var=var, moving="true", tier=TIER.format(var=var, level=level))
-            (BASE / folder / (file + ".xml")).write_text(text, encoding="utf-8", newline="\n"); print("wrote", folder, file)
+            def write(name, file, clip, sprint="", cprio=10):
+                text = NODE.format(name=name, clip=clip, var=var, moving="true", tier=TIER.format(var=var, level=level), sprint=sprint, cprio=cprio)
+                (BASE / folder / (file + ".xml")).write_text(text, encoding="utf-8", newline="\n"); print("wrote", folder, file)
+            forced = var == "Pogo" and folder == "run"
+            write(name, file, f"{t['clip']}{suffix}{tier}", SPRINT.format(var=var, value="false") if forced else "")
+            if forced: write(name.replace("run_", "runsprint_"), file.replace("run_", "runsprint_"), f"{t['clip']}Sprint{tier}", SPRINT.format(var=var, value="true"), 11)
     if "idle" in t:
-        text = NODE.format(name=f"idle_{var.lower()}", clip=t["idle"], var=var, moving="false", tier="")
+        text = NODE.format(name=f"idle_{var.lower()}", clip=t["idle"], var=var, moving="false", tier="", sprint="", cprio=10)
         (BASE / "idle" / f"idle_{var.lower()}.xml").write_text(text, encoding="utf-8", newline="\n"); print("wrote idle", var)

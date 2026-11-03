@@ -2,6 +2,7 @@
   python scripts/smoke_test.py static          files only, no game
   python scripts/smoke_test.py server          + boot a dev server with the mod, scan its log for errors
   python scripts/smoke_test.py play [--keep]   + (any stage takes --no-static) rendered client logs in, gets the items, vehicle spawned next to it; leaves the game open for you
+                                               --keys also presses the REAL run and sprint keys (needs the game window in front, do not touch the keyboard)
 Stages run in order and stop at the first failure. Exit 0 = pass. Stop everything afterwards: python <RL repo>/scripts/cleanup.py"""
 import math, os, pathlib, re, shutil, subprocess, sys, time
 
@@ -66,6 +67,34 @@ def stage_server():
     re.search(rf"loading {MOD_ID}", text) or fail(f"server never loaded {MOD_ID}, see {log}")
     bad and fail("mod errors in server log:\n" + "\n".join(bad[:10]))
     print("server ok, log", log)
+
+def sprint_keys(bot, pos, logdir):
+    """Holds W + the run key, then W + the sprint key (the game's defaults: Left Shift, Left Alt, see <RL>/.pzclient/Lua/keysB42.ini) with the pogo in hand. The bot cannot press
+    keys, and a bot-forced gait hid the sprint problem (docs/dev/journal.md), so this is the only check that a person's sprint key reaches the clips. Passes when the sprint
+    reading is clearly above the run one and the mod's pace log shows the sprint clip (Bob_PogoHopSprint) playing."""
+    import ctypes
+    u = ctypes.windll.user32
+    W, LSHIFT, LALT = 0x11, 0x2A, 0x38
+    key = lambda scan, down: u.keybd_event(0, scan, 8 | (0 if down else 2), 0)      # KEYEVENTF_SCANCODE (8), KEYEVENTF_KEYUP (2)
+    newest = lambda: sorted(logdir.glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding="utf-8", errors="replace")
+    subprocess.run([sys.executable, str(HERE / "scripts" / "shoot.py"), "shot", str(HERE / "previews" / "keys_start.png")], check=True)      # raises the game window
+    bot("smokegait", "walk"); bot("smokecalm", "1")      # no forced gait: only the keys decide
+    speeds, clips = {}, {}
+    for gait, scan in (("run", LSHIFT), ("sprint", LALT)):
+        start = len(newest())
+        try:
+            key(scan, True); key(W, True); time.sleep(2.5)
+            a = pos(); t0 = time.time(); time.sleep(3); b = pos()
+            speeds[gait] = math.hypot(b["x"] - a["x"], b["y"] - a["y"]) / (time.time() - t0)
+            bot("smokestate")
+        finally:
+            key(W, False); key(scan, False)
+        time.sleep(1.5)
+        clips[gait] = re.findall(r"ImpracticalTransport pace clip=(\S+) gait=(\S+)", newest()[start:])[-1:]
+        bot("goto", "5385", "10114"); time.sleep(10); bot("stop"); time.sleep(1)      # back to the start of the field
+    print(f"real keys: run {speeds['run']:.2f} tiles/s {clips['run']}, sprint {speeds['sprint']:.2f} tiles/s {clips['sprint']}")
+    speeds["sprint"] > speeds["run"] * 1.1 or fail("holding the sprint key is not clearly faster than run (see the STATE and pace lines in the client log)")
+    any("Sprint" in clip for clip, _ in clips["sprint"]) or fail("holding the sprint key never played the sprint clip (see the pace and STATE lines in the client log)")
 
 def stage_play(keep):
     from pzrl.channel import ServerChannel
@@ -153,6 +182,7 @@ def stage_play(keep):
     print("terrain readings:", sorted(set(re.findall(r"ImpracticalTransport terrain (.*)", log))))
     print(f"speed: walking {walk:.2f} tiles/s, pogo {pogo:.2f} tiles/s ({pogo / walk:.0%} of walking)")
     pogo > 0.1 or fail("rider did not move")
+    if "--keys" in sys.argv: sprint_keys(bot, pos, RL / ".pzclient" / "Logs")
     # put it away like a player: a real unequip action must finish while the pogo anim nodes are active
     bot("smokeunequipaction"); time.sleep(6); bot("smokehands"); time.sleep(1)
     "RLBOT smokehands -> true true hands empty" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("unequip action never finished: hands still full")

@@ -12,7 +12,7 @@ ImpracticalTransport = ImpracticalTransport or {}
 local PROFILES = {
     ["ImpracticalTransport.PogoStick"] = {
         name = "Pogo", mount = true,
-        speed = { [""] = 0.86, Run = 1.6 },
+        speed = { [""] = 0.86, Run = 1.6, Sprint = 2.0 },      -- Sprint is an estimate from the clip factors (2.2 against run 1.7), not yet measured
         tier1 = 0.8, tier2 = 0.5,
         drain = 0.0035, drainRun = 1.6, drainSprint = 2.5,
         stumble = 0.0125, stumbleRun = 3.0, stumbleSprint = 6.0,
@@ -66,12 +66,16 @@ local SURFACES = {
     { "snow",   speed = 0.55, stumble = 2.5 },
     { "gravel", speed = 0.70, stumble = 2.0 },
     { "dirt",   speed = 0.85, stumble = 1.5 },
+    { "clay",   speed = 0.85, stumble = 1.5 },      -- blends_natural_01 Clay: the same as bare dirt
     { "grass",  speed = 0.90, stumble = 1.3 },
+    { "floors_exterior_natural", speed = 0.90, stumble = 1.3 },      -- the old grass floor set (no FloorMaterial)
     -- paved ground (labels seen at the parking lot: "road_07 blends_street_01_96"): neutral for most transports; a profile with `paved` (skates) gets a speed bonus
     { "road_",  speed = 1.0, stumble = 1.0, paved = true },
     { "blends_street", speed = 1.0, stumble = 1.0, paved = true },
     { "asphalt", speed = 1.0, stumble = 1.0, paved = true },
     { "concrete", speed = 1.0, stumble = 1.0, paved = true },
+    { "floors_exterior_street", speed = 1.0, stumble = 1.0, paved = true },      -- sidewalks and pavers (no FloorMaterial)
+    { "tilesandstone", speed = 1.0, stumble = 1.0, paved = true },
 }
 local BUSH_STUMBLE = 4.0        -- tripping multiplier on a bush or tree square, on the square ahead, or inside vanilla's "in trees" state
 local NEUTRAL = { speed = 1, stumble = 1 }
@@ -89,9 +93,9 @@ local function guarded(name, fn, default)
     return default
 end
 
-local function groundAt(square)
+local function groundAt(square, forced)
     if not square then return NEUTRAL end
-    local label = guarded("ground", function()
+    local label = forced or guarded("ground", function()
         local floor = square:getFloor()
         local material = floor and floor:getProperties() and floor:getProperties():get("FloorMaterial") or ""
         local sprite = floor and floor:getSprite() and floor:getSprite():getName() or ""
@@ -99,13 +103,20 @@ local function groundAt(square)
         return (water .. tostring(material) .. " " .. sprite):lower()
     end, "")
     for _, surface in ipairs(SURFACES) do
-        if label:find(surface[1], 1, true) then return surface end
+        if label:find("%f[%a]" .. surface[1]) then return surface end      -- at a word start, so "tilesandstone" is not sand
     end
     if not seenGround[label] then seenGround[label] = true; print("ImpracticalTransport unclassified ground: " .. label) end
     return NEUTRAL
 end
 
 ImpracticalTransport.groundAt = groundAt      -- the test bot scans the world with it (smokescan)
+
+-- What the rider stands on. The test bot can name a ground class (ImpracticalTransport.forceGround = "sand", "neutral" for none) but only under the calm
+-- test switch, so normal play never sees it.
+local function groundHere(player)
+    local forced = ImpracticalTransport.calm and ImpracticalTransport.forceGround or nil
+    return groundAt(player:getCurrentSquare(), forced)
+end
 
 local function bushNear(player)
     return guarded("bush", function()
@@ -124,6 +135,13 @@ local function vanillaSlowdown(player)
         local slowed = 1 - math.min(0.8, math.max(0, player:getSlowFactor()))
         return math.min(1, trees) * slowed
     end, 1))
+end
+
+-- Is the sprint key (or the toggle that stands for it) down? Reads the game's own binding, never a fixed key.
+local function sprintAsked(player)
+    return guarded("sprintkey", function()
+        return player:isSprintButtonDown() or isKeyDown(getCore():getKey(KeybindId.SPRINT))
+    end, false)
 end
 
 local riding = {}
@@ -243,6 +261,7 @@ Events.OnPlayerUpdate.Add(function(player)
         player:setVariable(kind .. "Transition", "")
     end
     if not active then
+        if kind then player:setVariable(kind .. "Sprint", false) end
         if stallUntil[num] then stallUntil[num] = nil; player:setVariable(kind .. "Stall", false) end
         if coastUntil[num] then coastUntil[num] = nil; player:setVariable(kind .. "Coast", false) end
         wasMoving[num] = false
@@ -263,7 +282,7 @@ Events.OnPlayerUpdate.Add(function(player)
             local running = player:isRunning()
             local seconds = running and profile.coast.run or profile.coast.walk
             local fallChance = profile.stopFall and (running and profile.stopFall.run or profile.stopFall.walk) or 0
-            fallChance = fallChance * (1 + (1 - player:getStats():get(CharacterStat.ENDURANCE))) * groundAt(player:getCurrentSquare()).stumble
+            fallChance = fallChance * (1 + (1 - player:getStats():get(CharacterStat.ENDURANCE))) * groundHere(player).stumble
             if not ImpracticalTransport.calm and ZombRandFloat(0, 1) < fallChance then
                 print(string.format("ImpracticalTransport stop fall (chance %.2f)", fallChance))
                 ImpracticalTransport.stumble(player)
@@ -288,13 +307,18 @@ Events.OnPlayerUpdate.Add(function(player)
     local tired = endurance >= 0.5 and 1 or math.max(0.5, endurance * 0.9 + 0.5)   -- slower when winded
     -- whatever slows walking slows the hop too: the engine's own slowdown values, then the ground, all multiplied together
     local vanilla = vanillaSlowdown(player)
-    local ground = groundAt(player:getCurrentSquare())
+    local ground = groundHere(player)
     local terrain = vanilla * ground.speed
     local report = string.format("vanilla=%.2f ground=%.2f", vanilla, ground.speed)
     if report ~= lastReport[num] then lastReport[num] = report; print("ImpracticalTransport terrain " .. report) end
     -- Speed comes from which clip plays, not from a playback variable (those do nothing, see the README): the anim nodes pick a clip tier from PogoTier.
     -- Run and sprint have their own faster clips. Tier 0 is full pace, 1 and 2 are the slower clips for loose ground, a tired rider or a heavy slowdown.
-    local gait = player:isSprinting() and "Sprint" or player:isRunning() and "Run" or ""
+    -- The engine can leave a rider in the run state with the sprint key held (the cause is not found, see docs/dev/journal.md); then the key itself counts as
+    -- sprint and the run-state sprint node (<Name>Sprint) plays the sprint clip. ImpracticalTransport.forceSprint = false turns this off for tests.
+    local engineSprint = player:isSprinting()
+    local forced = not engineSprint and ImpracticalTransport.forceSprint ~= false and player:isRunning() and player:isPlayerMoving() and not player:isInTrees() and sprintAsked(player)
+    player:setVariable(profile.name .. "Sprint", forced)
+    local gait = (engineSprint or forced) and "Sprint" or player:isRunning() and "Run" or ""
     local pace = tired * terrain * ((ground.paved and profile.paved) or 1)      -- skates only: pavement is where they beat walking
     local tier = (profile.paved and pace >= profile.tierFast) and "3" or pace >= profile.tier1 and "0" or pace >= profile.tier2 and "1" or "2"
     player:setVariable(profile.name .. "Tier", tier)
