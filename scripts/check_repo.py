@@ -48,5 +48,8 @@ for f in (MEDIA / "scripts").glob("*.txt"):
         if icon in ("Shoes",): continue      # vanilla icon
         (MEDIA / "textures" / f"Item_{icon}.png").exists() or bad(f"{f.name}: Icon {icon} has no textures/Item_{icon}.png")
 
+import check_assets      # game-asset leak check, see its header
+problems += check_assets.repo_problems()
+
 print("\n".join(problems) if problems else "repo checks ok")
 sys.exit(1 if problems else 0)
