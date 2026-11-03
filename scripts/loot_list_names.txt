@@ -1,0 +1,12 @@
+# Names of the vanilla ProceduralDistributions lists that ImpracticalTransportLoot.lua adds to (checked by check_repo.py). Verified against the Build 42 install; one per line.
+BedroomDresserChild
+WardrobeChild
+CrateToys
+GiftStoreToys
+GigamartToys
+ClosetSportsEquipment
+SchoolGymSportsGear
+CrateSports
+SportStoreSneakers
+ClosetShelfGeneric
+CrateRandomJunk
