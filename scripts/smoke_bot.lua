@@ -450,3 +450,11 @@ commands.smokeloot = function(p, a)
     print(msg)
     return true, msg
 end
+
+-- smokeslowprobe: log the inputs of the mod's vanillaSlowdown() (trees variable, slow factor, slow timer) while moving
+commands.smokeslowprobe = function(p, a)
+    local function try(f) local ok, v = pcall(f); return ok and tostring(v) or "ERR" end
+    local msg = "SLOWPROBE trees=" .. try(function() return p:getVariableFloat("WalkSpeedTrees", 1) end) .. " slowFactor=" .. try(function() return p:getSlowFactor() end)
+        .. " slowTimer=" .. try(function() return p:getSlowTimer() end) .. " inTrees=" .. try(function() return p:isInTrees() end) .. " moving=" .. try(function() return p:isPlayerMoving() end)
+    print(msg); return true, msg
+end

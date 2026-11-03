@@ -1,7 +1,32 @@
 {
-  "dirt_field": {"x": 5385, "y": 10114, "note": "bare dirt, the smoke test arena"},
-  "sand_beach": {"x": 6355, "y": 5257, "note": "sand, pogo ground factor 0.50 measured"},
-  "parking_lot": {"x": 7740, "y": 11755, "note": "found by the user 2026-11-01; may have cars; paved surface to compare against dirt"},
-  "mixed_sand_grass_a": {"x": 8055, "y": 11655, "note": "neutral/sand/grass/bushes (smokescan)"},
-  "mixed_sand_grass_b": {"x": 10555, "y": 10255, "note": "grass, trees, sand (smokescan)"}
+  "dirt_field": {
+    "x": 5385,
+    "y": 10114,
+    "note": "bare dirt, the smoke test arena"
+  },
+  "sand_beach": {
+    "x": 6355,
+    "y": 5257,
+    "note": "sand, pogo ground factor 0.50 measured"
+  },
+  "parking_lot": {
+    "x": 7740,
+    "y": 11755,
+    "note": "found by the user 2026-11-01; may have cars; paved surface to compare against dirt"
+  },
+  "mixed_sand_grass_a": {
+    "x": 8055,
+    "y": 11655,
+    "note": "neutral/sand/grass/bushes (smokescan)"
+  },
+  "mixed_sand_grass_b": {
+    "x": 10555,
+    "y": 10255,
+    "note": "grass, trees, sand (smokescan)"
+  },
+  "lake_march_ridge": {
+    "x": 8287,
+    "y": 15185,
+    "note": "found on pzmap.org 2026-11-03; /teleportto works at any distance; scan: water 2312, dirt 276, grass 11, clay 2, bush, tree"
+  }
 }

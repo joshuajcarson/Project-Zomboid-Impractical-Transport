@@ -143,7 +143,7 @@ end
 -- Factor (0.2..1) the engine slows walking by: the in-trees walk speed variable and the character's slow factor. Missing calls count as 1.
 local function vanillaSlowdown(player)
     return math.max(0.2, guarded("slowdown", function()
-        local trees = player:getVariableFloat("WalkSpeedTrees", 1)
+        local trees = player:isInTrees() and player:getVariableFloat("WalkSpeedTrees", 1) or 1      -- the variable reads 0 outside the trees animation, which pinned every reading to the slowest tier in the ground loop
         local slowed = 1 - math.min(0.8, math.max(0, player:getSlowFactor()))
         return math.min(1, trees) * slowed
     end, 1))

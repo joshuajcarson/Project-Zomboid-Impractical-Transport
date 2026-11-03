@@ -31,7 +31,7 @@ for item in items:
     for cls in CLASSES:
         bot("smokeground", cls)
         v = cruise(12 if CLASSES.index(cls) % 2 == 0 else -12)      # back and forth so the walks stay in the arena
-        m = re.findall(r"ImpracticalTransport pace .*ground=([\d.]+) pace=[\d.]+ tier=(\d) expected=(-?[\d.]+)", log())
+        m = re.findall(r"ImpracticalTransport pace .*ground=([\d.]+) pace=[\d.]+ tier=(\d) expected=(-?\d+(?:\.\d+)?)", log())
         factor, tier, want = (m[-1][0], m[-1][1], float(m[-1][2])) if m else ("?", "?", -1.0)
         ok = want > 0 and abs(v - want) <= 0.3 * want
         bad += not ok
