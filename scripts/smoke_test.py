@@ -143,8 +143,14 @@ def stage_play(keep):
     logs = sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)
     "ImpracticalTransport riding=true" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("riding flag never set (see client log)")
     "mount_pogo/Bob_PogoMount" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("the mount anim node never played (see NODE lines in the client log)")
+    def bounces():
+        return len(re.findall(r"ImpracticalTransport bounce \d+", sorted((RL / ".pzclient" / "Logs").glob("*DebugLog.txt"), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding="utf-8", errors="replace")))
+    b0 = bounces()
     pogo = speed(-12)
     expected_speed("pogo", pogo)
+    hops = bounces() - b0      # the mod logs one line per landing; the 8 s walk at one hop per 0.8 s gives about 10 (the sound itself is an anim event and cannot be counted without ears)
+    print(f"pogo bounces logged during the walk: {hops} (expected about 10)")
+    7 <= hops <= 12 or fail(f"{hops} pogo bounces logged in an 8 s walk, expected about 10 (one per 0.8 s hop)")
     bot("smokecalm", "0"); bot("smokestumble"); time.sleep(8)      # the fall animation has to finish before the unequip below is queued
     "ImpracticalTransport stumble" in logs[-1].read_text(encoding="utf-8", errors="replace") or fail("forced stumble never ran (see client log)")
     log = logs[-1].read_text(encoding="utf-8", errors="replace")

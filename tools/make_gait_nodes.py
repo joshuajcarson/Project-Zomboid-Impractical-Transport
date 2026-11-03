@@ -23,7 +23,14 @@ NODE = """<?xml version="1.0" encoding="utf-8"?>
 		<m_Type>BOOL</m_Type>
 		<m_Value>{moving}</m_Value>
 	</m_Conditions>
-{tier}</animNode>
+{tier}{events}</animNode>
+"""
+# animation event: the engine plays sound script <sound> when the clip reaches <pc> of its length (the pogo's touchdown, frame ~20 of 24)
+EVENT = """	<m_Events>
+		<m_EventName>PlaySound</m_EventName>
+		<m_TimePc>{pc}</m_TimePc>
+		<m_ParameterValue>{sound}</m_ParameterValue>
+	</m_Events>
 """
 TIER = """	<m_Conditions>
 		<m_Name>{var}Tier</m_Name>
@@ -33,7 +40,7 @@ TIER = """	<m_Conditions>
 """
 # per transport: variable prefix, clip name prefix, and for each gait (folder, file stem, clip suffix)
 TRANSPORTS = {
-    "Pogo": dict(clip="Bob_PogoHop", gaits=(("movement", "walk_pogo", ""), ("run", "run_pogo", "Run"), ("sprint", "defaultSprint_pogo", "Sprint"))),
+    "Pogo": dict(clip="Bob_PogoHop", sound=("ImpracticalTransportPogoBounce", 0.83), gaits=(("movement", "walk_pogo", ""), ("run", "run_pogo", "Run"), ("sprint", "defaultSprint_pogo", "Sprint"))),
     "Trike": dict(clip="Bob_TrikeRide", gaits=(("movement", "walk_trike", ""), ("run", "run_trike", "Run"), ("sprint", "sprint_trike", "Run")), idle="Bob_TrikeIdle"),
     "Skates": dict(tiers=("", "T1", "T2", "F"), clip="Bob_SkateGlide", gaits=(("movement", "walk_skates", ""), ("run", "run_skates", "Run"), ("sprint", "sprint_skates", "Run")), idle="Bob_SkateIdle"),
     "Uni": dict(clip="Bob_UniRide", gaits=(("movement", "walk_uni", ""), ("run", "run_uni", "Run"), ("sprint", "sprint_uni", "Run")), idle="Bob_UniIdle"),
@@ -75,8 +82,9 @@ for var, t in TRANSPORTS.items():
         for level, tier in enumerate(t.get("tiers", ("", "T1", "T2"))):
             file = stem + ("" if not level else f"_t{level}")
             name = file.replace("defaultSprint_pogo", "sprint_pogo")
-            text = NODE.format(name=name, clip=f"{t['clip']}{suffix}{tier}", var=var, moving="true", tier=TIER.format(var=var, level=level))
+            text = NODE.format(name=name, clip=f"{t['clip']}{suffix}{tier}", var=var, moving="true", tier=TIER.format(var=var, level=level),
+                               events=EVENT.format(sound=t["sound"][0], pc=t["sound"][1]) if "sound" in t else "")
             (BASE / folder / (file + ".xml")).write_text(text, encoding="utf-8", newline="\n"); print("wrote", folder, file)
     if "idle" in t:
-        text = NODE.format(name=f"idle_{var.lower()}", clip=t["idle"], var=var, moving="false", tier="")
+        text = NODE.format(name=f"idle_{var.lower()}", clip=t["idle"], var=var, moving="false", tier="", events="")
         (BASE / "idle" / f"idle_{var.lower()}.xml").write_text(text, encoding="utf-8", newline="\n"); print("wrote idle", var)
