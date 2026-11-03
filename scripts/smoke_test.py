@@ -11,7 +11,7 @@ MOD_ID = "ImpracticalTransport"
 RL = pathlib.Path(os.environ.get("PZ_RL_REPO", r"C:\bench\project-zomboid-rl-based-players"))
 ARENA = (5385, 10114)   # the RL harness's bare dirt field (5377,10114; its west corner has traffic cones, so start 8 tiles east); the old arena at 10770,9410 sits beside a house, shed and playground, and 4010,11767 is a crop field that hides the rider; the character otherwise resumes wherever it was left
 USER = "Smoke1"   # fresh account: a dead character from an earlier run would otherwise be reused
-ITEMS = ["ImpracticalTransport.PogoStick", "ImpracticalTransport.Tricycle", "ImpracticalTransport.Unicycle", "ImpracticalTransport.RollerSkates"]
+ITEMS = ["ImpracticalTransport.PogoStick", "ImpracticalTransport.Tricycle", "ImpracticalTransport.Unicycle", "ImpracticalTransport.RollerSkates", "ImpracticalTransport.Stilts"]
 TILT_CAL = MOD / "42/media/scripts/ImpracticalTransport_tilt_cal_items.txt"      # throw-away, see tools/make_tilt_calibration.py
 ITEMS += [f"ImpracticalTransport.{n}" for n in re.findall(r"item ((?:Uni|Pogo)Cal\d+)", TILT_CAL.read_text(encoding="utf-8") if TILT_CAL.exists() else "")]
 VEHICLES = []   # the tricycle vehicle script is parked while the transports move to held items
@@ -213,6 +213,15 @@ def stage_play(keep):
     bot("tp", str(ARENA[0]), str(ARENA[1])); time.sleep(15)
     paved > skate_speed * 1.5 or fail("skates are not clearly faster on pavement than on dirt")
     bot("smokeunwear", "RollerSkates"); time.sleep(5); bot("smokechat", "/removeitem ImpracticalTransport.RollerSkates 0"); time.sleep(2)
+    # stilts are worn too: wear, measure on dirt (slower than walking, as the mod expects), take off
+    bot("smokechat", f'/additem "{USER}" ImpracticalTransport.Stilts'); time.sleep(4)
+    bot("smokewear", "Stilts"); time.sleep(6)
+    bot("smokecalm", "1"); stilt_speed = speed(12)
+    expected_speed("stilts", stilt_speed)
+    print(f"stilts {stilt_speed:.2f} tiles/s ({stilt_speed / base:.0%} of the faster walk)")
+    stilt_speed > 0.1 or fail("stilt walker did not move")
+    stilt_speed < base * 0.7 or fail("stilts are not clearly slower than walking")
+    bot("smokeunwear", "Stilts"); time.sleep(5); bot("smokechat", "/removeitem ImpracticalTransport.Stilts 0"); time.sleep(2)
     bot("smokechat", f'/additem "{USER}" ImpracticalTransport.PogoStick'); time.sleep(4)
     bot("smokeequipaction", "PogoStick")   # leave it in hand for whoever plays next
     print("play ready: god mode on, dressed, pogo stick equipped")

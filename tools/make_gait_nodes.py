@@ -43,6 +43,7 @@ TRANSPORTS = {
     "Pogo": dict(clip="Bob_PogoHop", sound=("ImpracticalTransportPogoBounce", 0.83), gaits=(("movement", "walk_pogo", ""), ("run", "run_pogo", "Run"), ("sprint", "defaultSprint_pogo", "Sprint"))),
     "Trike": dict(clip="Bob_TrikeRide", gaits=(("movement", "walk_trike", ""), ("run", "run_trike", "Run"), ("sprint", "sprint_trike", "Run")), idle="Bob_TrikeIdle"),
     "Skates": dict(tiers=("", "T1", "T2", "F"), clip="Bob_SkateGlide", gaits=(("movement", "walk_skates", ""), ("run", "run_skates", "Run"), ("sprint", "sprint_skates", "Run")), idle="Bob_SkateIdle"),
+    "Stilts": dict(clip="Bob_StiltsWalk", gaits=(("movement", "walk_stilts", ""), ("run", "run_stilts", "Run"), ("sprint", "sprint_stilts", "Run")), idle="Bob_StiltsIdle"),
     "Uni": dict(clip="Bob_UniRide", gaits=(("movement", "walk_uni", ""), ("run", "run_uni", "Run"), ("sprint", "sprint_uni", "Run")), idle="Bob_UniIdle"),
 }
 # coast nodes (idle state): the rider glides on after stopping, one clip per gait and tier so the glide starts at the speed the rider was going
