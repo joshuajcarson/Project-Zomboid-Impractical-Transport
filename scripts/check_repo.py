@@ -31,7 +31,7 @@ for f in [*ROOT.glob("scripts/*.py"), *ROOT.glob("tools/**/*.py")]:
     try: ast.parse(f.read_text(encoding="utf-8"))
     except SyntaxError as e: bad(f"{f.relative_to(ROOT)}: Python syntax error line {e.lineno}")
 
-clips = {f.stem for f in (MEDIA / "anims_X").rglob("*.X")}
+clips = {f.stem for f in (MEDIA / "anims_X").rglob("*.X")} | {"Bob_FallLanding_HeavyFall"}      # the last one is the game's own clip (stilts fall), referenced by name only
 for f in (MEDIA / "anims_X").rglob("*.X"):
     f.read_text(encoding="latin-1").startswith("xof 0303txt") or bad(f"{f.relative_to(ROOT)}: not a text DirectX file")
 for f in (MEDIA / "AnimSets").rglob("*.xml"):

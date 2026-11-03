@@ -49,6 +49,7 @@ local PROFILES = {
         tier1 = 0.8, tier2 = 0.5,
         drain = 0.005, drainRun = 1.6, drainSprint = 1.6,
         stumble = 0.025, stumbleRun = 3.0, stumbleSprint = 4.0,
+        drop = { endurance = 0.4 },      -- a fall is a drop from a second-storey floor: the hard-landing clip and sound, and a big endurance cost
     },
     -- a unicycle: balance is the whole job, so it wobbles often and falls more than the tricycle
     ["ImpracticalTransport.Unicycle"] = {
@@ -207,6 +208,7 @@ local function busy(player)
 end
 
 -- Trips the rider the way vanilla's debug "stagger and fall" does (the same bump variables), costs some endurance, and starts the cooldown.
+-- A profile with `drop` (stilts) falls like a drop from a second-storey floor: the hard-landing clip (AnimSets bumped/fall_stilts.xml), and a bigger endurance cost.
 function ImpracticalTransport.stumble(player)
     stumbleAfter[player:getPlayerNum()] = getTimestampMs() + STUMBLE_COOLDOWN_SECONDS * 1000
     player:setBumpType("stagger")
@@ -214,8 +216,10 @@ function ImpracticalTransport.stumble(player)
     player:setVariable("BumpFall", true)
     player:setVariable("BumpFallType", "pushedFront")
     local stats = player:getStats()
-    stats:set(CharacterStat.ENDURANCE, math.max(0, stats:get(CharacterStat.ENDURANCE) - 0.1))
-    print("ImpracticalTransport stumble")
+    local profile = ImpracticalTransport.getProfile(player)
+    local drop = profile and profile.drop
+    stats:set(CharacterStat.ENDURANCE, math.max(0, stats:get(CharacterStat.ENDURANCE) - (drop and drop.endurance or 0.1)))
+    print("ImpracticalTransport stumble" .. (drop and " (drop)" or ""))
 end
 
 -- The pedals lose their grip: the feet spin for a second or two (Bob_TrikeSlip, no travel) and the trike stands still, then it goes on.

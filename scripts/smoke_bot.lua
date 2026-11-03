@@ -68,7 +68,8 @@ end
 -- smokestumble: force the stumble the rider would otherwise get by chance (the mod's own function, so its variables are the ones tested)
 commands.smokestumble = function(p, a)
     local ok, err = pcall(ImpracticalTransport.stumble, p)
-    return ok, tostring(err or "stumbled")
+    local bp = p:getBodyDamage():getBodyPart(BodyPartType.Foot_L)
+    return ok, tostring(err or "stumbled") .. " footPainNow=" .. bp:getAdditionalPain() .. " profile=" .. tostring(ImpracticalTransport.getProfile(p) and ImpracticalTransport.getProfile(p).name)
 end
 
 -- smokebones|ticks: log the model-space transform of the bones that matter for the pogo pose, once per update for `ticks` updates.
@@ -493,6 +494,18 @@ commands.smokesound = function(p, a)
     local gs = pcall(function() return GameSounds.getSound(name) end) and GameSounds.getSound(name)
     local clips = gs and gs.clips and tostring(gs.clips:size()) or "n/a"
     local msg = "SOUND known=" .. known .. " clips=" .. clips .. " " .. name .. " handle=" .. tostring(h) .. " ok=" .. tostring(ok) .. " playing=" .. tostring(ok and p:getEmitter():isPlaying(name))
+    print(msg); return true, msg
+end
+
+-- smokepain|set: log the additional pain, pain and stiffness of the feet and shins and the endurance; with an argument first sets that much additional pain
+commands.smokepain = function(p, a)
+    local body, out = p:getBodyDamage(), {}
+    for _, part in ipairs({ BodyPartType.BodyPartType.LowerLeg_L, BodyPartType.LowerLeg_R }) do
+        local bp = body:getBodyPart(part)
+        if a and a.a then bp:setStiffness(tonumber(a.a)) end
+        out[#out + 1] = string.format("%s=add%.0f/pain%.0f/stiff%.0f", tostring(part), bp:getAdditionalPain(), bp:getPain(), bp:getStiffness())
+    end
+    local msg = "PAIN " .. table.concat(out, " ") .. " endurance=" .. string.format("%.2f", p:getStats():get(CharacterStat.ENDURANCE)) .. " overall=" .. string.format("%.0f", body:getOverallBodyHealth())
     print(msg); return true, msg
 end
 
