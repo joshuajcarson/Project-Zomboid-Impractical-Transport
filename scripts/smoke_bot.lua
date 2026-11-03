@@ -485,6 +485,17 @@ commands.smokescan = function(p, a)
     print(msg); return true, msg
 end
 
+-- smokesound|Name: play a sound script on the player and log the emitter handle (0 or error = the sound is not registered / its clip is missing)
+commands.smokesound = function(p, a)
+    local name = (a and a.a) or "ImpracticalTransportPogoBounce"
+    local ok, h = pcall(function() return p:getEmitter():playSound(name) end)
+    local known = pcall(function() return GameSounds.isKnownSound(name) end) and tostring(GameSounds.isKnownSound(name)) or "n/a"
+    local gs = pcall(function() return GameSounds.getSound(name) end) and GameSounds.getSound(name)
+    local clips = gs and gs.clips and tostring(gs.clips:size()) or "n/a"
+    local msg = "SOUND known=" .. known .. " clips=" .. clips .. " " .. name .. " handle=" .. tostring(h) .. " ok=" .. tostring(ok) .. " playing=" .. tostring(ok and p:getEmitter():isPlaying(name))
+    print(msg); return true, msg
+end
+
 -- smokeslowprobe: log the inputs of the mod's vanillaSlowdown() (trees variable, slow factor, slow timer) while moving
 commands.smokeslowprobe = function(p, a)
     local function try(f) local ok, v = pcall(f); return ok and tostring(v) or "ERR" end

@@ -1,6 +1,6 @@
 """Speed of each transport on every ground class, against what the mod expects. Needs a game left open by `smoke_test.py play --keep` (the tester at the arena,
 dressed, god mode); it forces the ground with the bot's `smokeground` (calm switch only, so no real map tiles are needed) and walks the same distance on each.
-  python scripts/ground_speed.py [Pogo,Tricycle,Unicycle]     items to test (default: all three held ones); prints a table, exit 1 when a reading is >30% off
+  python scripts/ground_speed.py [PogoStick,RollerSkates,Stilts]     items to test (default: the three held ones; skates and stilts are worn); prints a table, exit 1 when a reading is >30% off
 The mod prints "pace ... ground=<factor> expected=<tiles/s>" once a second while moving; the measured speed is compared with the last such line of each walk."""
 import math, os, pathlib, re, subprocess, sys, time
 HERE = pathlib.Path(__file__).resolve().parent.parent
@@ -10,6 +10,7 @@ from pzrl.channel import ServerChannel
 USER = "Smoke1"
 CLASSES = ["neutral", "water", "mud", "sand", "snow", "gravel", "dirt", "grass", "road_"]      # one label per SURFACES class (the paved ones share numbers), see scripts/terrain_classes.json
 items = (sys.argv[1] if len(sys.argv) > 1 else "PogoStick,Tricycle,Unicycle").split(",")
+WORN = {"RollerSkates", "Stilts"}
 ch = ServerChannel()
 def bot(*c):
     try: return ch.command("|".join(("bot", USER) + c), timeout=15)["msg"]
@@ -27,7 +28,7 @@ print(f"{'item':10} {'ground':8} {'factor':>6} {'tier':>4} {'measured':>8} {'exp
 for item in items:
     bot("smokeunequipaction"); time.sleep(4)
     bot("smokechat", f'/additem "{USER}" ImpracticalTransport.{item}'); time.sleep(4)
-    bot("smokeequipaction", item); time.sleep(5)
+    bot("smokewear" if item in WORN else "smokeequipaction", item); time.sleep(5)
     for cls in CLASSES:
         bot("smokeground", cls)
         v = cruise(12 if CLASSES.index(cls) % 2 == 0 else -12)      # back and forth so the walks stay in the arena
@@ -37,7 +38,7 @@ for item in items:
         bad += not ok
         print(f"{item:10} {cls:8} {factor:>6} {tier:>4} {v:8.2f} {want:8.2f}  {'ok' if ok else 'OFF' if want > 0 else 'no pace line'}")
     bot("smokeground", "off")
-    bot("smokeunequipaction"); time.sleep(6); bot("smokechat", f"/removeitem ImpracticalTransport.{item} 0"); time.sleep(2)
+    bot("smokeunwear" if item in WORN else "smokeunequipaction", *([item] if item in WORN else [])); time.sleep(6); bot("smokechat", f"/removeitem ImpracticalTransport.{item} 0"); time.sleep(2)
 bot("smokehold"); bot("smokecalm", "0")
 print("PASS" if not bad else f"{bad} readings off")
 sys.exit(1 if bad else 0)
