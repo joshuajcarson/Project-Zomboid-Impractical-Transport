@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animNode>
+	<m_Name>runsprint_pogo</m_Name>
+	<m_AnimName>Bob_PogoHopSprint</m_AnimName>
+	<m_Priority>10</m_Priority>
+	<m_ConditionPriority>11</m_ConditionPriority>
+	<m_deferredBoneAxis>Y</m_deferredBoneAxis>
+	<m_BlendTime>0.40</m_BlendTime>
+	<m_SyncTrackingEnabled>false</m_SyncTrackingEnabled>
+	<m_Conditions>
+		<m_Name>PogoActive</m_Name>
+		<m_Type>BOOL</m_Type>
+		<m_Value>true</m_Value>
+	</m_Conditions>
+	<m_Conditions>
+		<m_Name>isMoving</m_Name>
+		<m_Type>BOOL</m_Type>
+		<m_Value>true</m_Value>
+	</m_Conditions>
+	<m_Conditions>
+		<m_Name>PogoTier</m_Name>
+		<m_Type>STRING</m_Type>
+		<m_StringValue>0</m_StringValue>
+	</m_Conditions>
+	<m_Conditions>
+		<m_Name>PogoSprint</m_Name>
+		<m_Type>BOOL</m_Type>
+		<m_Value>true</m_Value>
+	</m_Conditions>
+	<m_Events>
+		<m_EventName>PlaySound</m_EventName>
+		<m_TimePc>0.83</m_TimePc>
+		<m_ParameterValue>ImpracticalTransportPogoBounce</m_ParameterValue>
+	</m_Events>
+</animNode>

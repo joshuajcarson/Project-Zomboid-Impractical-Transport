@@ -41,7 +41,7 @@ for f in (MEDIA / "AnimSets").rglob("*.xml"):
 for f in ROOT.rglob("*"):
     if f.is_file() and f.suffix in {".py", ".lua", ".txt", ".md", ".xml"} and ".git" not in f.parts and "previews" not in f.parts:
         for i, line in enumerate(f.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
-            if line.startswith(("<<<<<<< ", "
+            if line.startswith(("<<<<<<< ", ">>>>>>> ")): bad(f"{f.relative_to(ROOT)}:{i}: merge conflict marker")
 for f in (MEDIA / "scripts").glob("*.txt"):
     for icon in re.findall(r"^\s*Icon\s*=\s*(\w+)", f.read_text(encoding="utf-8"), re.M):
         if icon in ("Shoes",): continue      # vanilla icon

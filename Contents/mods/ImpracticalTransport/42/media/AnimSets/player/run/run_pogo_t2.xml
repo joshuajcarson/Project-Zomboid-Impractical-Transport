@@ -22,6 +22,11 @@
 		<m_Type>STRING</m_Type>
 		<m_StringValue>2</m_StringValue>
 	</m_Conditions>
+	<m_Conditions>
+		<m_Name>PogoSprint</m_Name>
+		<m_Type>BOOL</m_Type>
+		<m_Value>false</m_Value>
+	</m_Conditions>
 	<m_Events>
 		<m_EventName>PlaySound</m_EventName>
 		<m_TimePc>0.83</m_TimePc>

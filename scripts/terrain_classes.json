@@ -1,0 +1,234 @@
+{
+ "_note": "derived by scripts/terrain_classes.py from the game's tile definitions; sprite families only, regenerate after a game update",
+ "classes": {
+  "water": {
+   "speed": 0.3,
+   "stumble": 3.0,
+   "paved": false,
+   "families": {
+    "blends_natural_02": {
+     "tiles": 16,
+     "materials": [
+      "Water"
+     ]
+    }
+   }
+  },
+  "mud": {
+   "speed": 0.35,
+   "stumble": 3.0,
+   "paved": false,
+   "families": {}
+  },
+  "sand": {
+   "speed": 0.5,
+   "stumble": 2.5,
+   "paved": false,
+   "families": {
+    "blends_natural_01": {
+     "tiles": 16,
+     "materials": [
+      "Clay",
+      "Dirt",
+      "Dirt_Grass",
+      "Grass_Dark",
+      "Grass_Light",
+      "Grass_Medium",
+      "Sand"
+     ]
+    }
+   }
+  },
+  "snow": {
+   "speed": 0.55,
+   "stumble": 2.5,
+   "paved": false,
+   "families": {
+    "e_exterior_snow_1": {
+     "tiles": 2,
+     "materials": [
+      "-"
+     ]
+    },
+    "e_newgrassbase_snow_1": {
+     "tiles": 4,
+     "materials": [
+      "-"
+     ]
+    }
+   }
+  },
+  "gravel": {
+   "speed": 0.7,
+   "stumble": 2.0,
+   "paved": false,
+   "families": {}
+  },
+  "dirt": {
+   "speed": 0.85,
+   "stumble": 1.5,
+   "paved": false,
+   "families": {
+    "blends_natural_01": {
+     "tiles": 32,
+     "materials": [
+      "Clay",
+      "Dirt",
+      "Dirt_Grass",
+      "Grass_Dark",
+      "Grass_Light",
+      "Grass_Medium",
+      "Sand"
+     ]
+    }
+   }
+  },
+  "clay": {
+   "speed": 0.85,
+   "stumble": 1.5,
+   "paved": false,
+   "families": {
+    "blends_natural_01": {
+     "tiles": 32,
+     "materials": [
+      "Clay",
+      "Dirt",
+      "Dirt_Grass",
+      "Grass_Dark",
+      "Grass_Light",
+      "Grass_Medium",
+      "Sand"
+     ]
+    }
+   }
+  },
+  "grass": {
+   "speed": 0.9,
+   "stumble": 1.3,
+   "paved": false,
+   "families": {
+    "blends_natural_01": {
+     "tiles": 48,
+     "materials": [
+      "Clay",
+      "Dirt",
+      "Dirt_Grass",
+      "Grass_Dark",
+      "Grass_Light",
+      "Grass_Medium",
+      "Sand"
+     ]
+    }
+   }
+  },
+  "floors_exterior_natural": {
+   "speed": 0.9,
+   "stumble": 1.3,
+   "paved": false,
+   "families": {
+    "floors_exterior_natural_01": {
+     "tiles": 22,
+     "materials": [
+      "-"
+     ]
+    }
+   }
+  },
+  "road_": {
+   "speed": 1.0,
+   "stumble": 1.0,
+   "paved": true,
+   "families": {
+    "blends_street_01": {
+     "tiles": 80,
+     "materials": [
+      "Road_01",
+      "Road_02",
+      "Road_03",
+      "Road_04",
+      "Road_05",
+      "Road_06",
+      "Road_07"
+     ]
+    }
+   }
+  },
+  "blends_street": {
+   "speed": 1.0,
+   "stumble": 1.0,
+   "paved": true,
+   "families": {}
+  },
+  "asphalt": {
+   "speed": 1.0,
+   "stumble": 1.0,
+   "paved": true,
+   "families": {}
+  },
+  "concrete": {
+   "speed": 1.0,
+   "stumble": 1.0,
+   "paved": true,
+   "families": {}
+  },
+  "floors_exterior_street": {
+   "speed": 1.0,
+   "stumble": 1.0,
+   "paved": true,
+   "families": {
+    "floors_exterior_street_01": {
+     "tiles": 28,
+     "materials": [
+      "-"
+     ]
+    }
+   }
+  },
+  "tilesandstone": {
+   "speed": 1.0,
+   "stumble": 1.0,
+   "paved": true,
+   "families": {
+    "floors_exterior_tilesandstone_01": {
+     "tiles": 81,
+     "materials": [
+      "-"
+     ]
+    }
+   }
+  }
+ },
+ "unclassified": {
+  "floor_carpet_motif": {
+   "tiles": 16,
+   "materials": [
+    "-"
+   ]
+  },
+  "floors_burnt_01": {
+   "tiles": 25,
+   "materials": [
+    "-",
+    "Burnt"
+   ]
+  },
+  "floors_interior_carpet_01": {
+   "tiles": 33,
+   "materials": [
+    "-"
+   ]
+  },
+  "floors_interior_tilesandwood_01": {
+   "tiles": 63,
+   "materials": [
+    "-"
+   ]
+  },
+  "industry_railroad_05": {
+   "tiles": 16,
+   "materials": [
+    "-"
+   ]
+  }
+ }
+}

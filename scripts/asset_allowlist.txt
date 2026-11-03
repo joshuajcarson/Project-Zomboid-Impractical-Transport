@@ -17,3 +17,8 @@ Contents/mods/ImpracticalTransport/42/media/scripts/vehicles/ImpracticalTranspor
 # tools/make_preview.py
 preview.png
 Contents/mods/ImpracticalTransport/42/poster.png
+# tools/make_pogo_sound.py
+Contents/mods/ImpracticalTransport/42/media/sound/pogo_bounce_*.wav
+# hand-written sound script and the stilts icon (tools/blender/stilts_model.py)
+Contents/mods/ImpracticalTransport/42/media/scripts/ImpracticalTransport_sounds.txt
+Contents/mods/ImpracticalTransport/42/media/textures/Item_Stilts.png

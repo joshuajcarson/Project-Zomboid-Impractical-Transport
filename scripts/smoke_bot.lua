@@ -134,6 +134,10 @@ end
 commands.smokestate = function(p, a)
     print("STATE tier=" .. tostring(p:getVariableString("PogoTier")) .. " endurance=" .. tostring(p:getStats():get(CharacterStat.ENDURANCE)))
     print("STATE canSprint=" .. tostring(pcall(function() return p:canSprint() end) and p:canSprint()) .. " sprintDown=" .. tostring(pcall(function() return p:isSprintButtonDown() end) and p:isSprintButtonDown()) .. " runDown=" .. tostring(pcall(function() return p:isRunButtonDown() end) and p:isRunButtonDown()))
+    -- what the engine cancels a sprint for (IsoPlayer.updateInternal2): walk speed under 1/3, walk injury over 0.5, in trees, no real movement input
+    print(string.format("STATE sprintKeyRaw=%s walkSpeedVar=%s walkInjuryVar=%s inTrees=%s modSprintVar=%s",
+        tostring(pcall(function() return isKeyDown(getCore():getKey(KeybindId.SPRINT)) end) and isKeyDown(getCore():getKey(KeybindId.SPRINT))),
+        tostring(p:getVariableFloat("WalkSpeed", -1)), tostring(p:getVariableFloat("WalkInjury", -1)), tostring(p:isInTrees()), tostring(p:getVariableBoolean("PogoSprint"))))
     print(string.format("STATE running=%s sprinting=%s moving=%s walkVar=%s runVar=%s sprintVar=%s node=%s",
         tostring(p:isRunning()), tostring(p:isSprinting()), tostring(p:isPlayerMoving()), tostring(p:getVariableFloat("PogoWalkSpeed", -1)),
         tostring(p:getVariableFloat("PogoRunSpeed", -1)), tostring(p:getVariableFloat("PogoSprintSpeed", -1)), tostring(p:getAnimationDebug()):gsub("%s+", " "):sub(1, 160)))
@@ -378,6 +382,16 @@ end
 commands.smokecalm = function(p, a)
     ImpracticalTransport.calm = (a and a.a) ~= "0"
     return true, "calm " .. tostring(ImpracticalTransport.calm)
+end
+
+-- smokeground|class|off: make the mod see that ground under the rider (a SURFACES pattern such as sand, road_, or neutral), whatever tile is really there; only works while
+-- smokecalm is on, so normal play never sees it. "off" (or no argument) releases it.
+commands.smokeground = function(p, a)
+    local class = a and a.a
+    if not class or class == "" or class == "off" then ImpracticalTransport.forceGround = nil; return true, "ground released" end
+    if not ImpracticalTransport.calm then return false, "needs smokecalm 1 first" end
+    ImpracticalTransport.forceGround = class
+    return true, "ground forced to " .. class
 end
 
 -- smokehold|value: keep endurance at that level every update (god mode refills it), so the winded-rider tiers can be tested; no value = stop holding
