@@ -41,8 +41,7 @@ for f in (MEDIA / "AnimSets").rglob("*.xml"):
 for f in ROOT.rglob("*"):
     if f.is_file() and f.suffix in {".py", ".lua", ".txt", ".md", ".xml"} and ".git" not in f.parts and "previews" not in f.parts:
         for i, line in enumerate(f.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
-            if line.startswith(("<<<<<<< ", ">>>>>>> ")): bad(f"{f.relative_to(ROOT)}:{i}: merge conflict marker")
-
+            if line.startswith(("<<<<<<< ", "
 for f in (MEDIA / "scripts").glob("*.txt"):
     for icon in re.findall(r"^\s*Icon\s*=\s*(\w+)", f.read_text(encoding="utf-8"), re.M):
         if icon in ("Shoes",): continue      # vanilla icon
@@ -55,6 +54,9 @@ our_items = set(re.findall(r"^\s*item\s+(\w+)", (MEDIA / "scripts/ImpracticalTra
 for lst, body in re.findall(r"^    (\w+) = \{(.*)\},?\s*$", loot, re.M):
     lst in known_lists or bad(f"ImpracticalTransportLoot.lua: list {lst} is not in scripts/loot_list_names.txt")
     for item in re.findall(r"(\w+) = [\d.]+", body): item in our_items or bad(f"ImpracticalTransportLoot.lua: item {item} is not in ImpracticalTransport_items.txt")
+
+import check_assets      # game-asset leak check, see its header
+problems += check_assets.repo_problems()
 
 print("\n".join(problems) if problems else "repo checks ok")
 sys.exit(1 if problems else 0)

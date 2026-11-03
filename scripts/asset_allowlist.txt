@@ -1,0 +1,19 @@
+# Tracked files that are allowed to be game-asset-shaped (.X .png .ogg .wav, and .txt under Contents/). One glob per line (* crosses folders), # comments.
+# Add a line only for a file WE made: say in the comment which tools/ script makes it. Never add a file copied from the game install.
+
+# tools/blender/*: generated clips (skeleton names copied by clipio.py, see NOTICE.md) and primitive-built models
+Contents/mods/ImpracticalTransport/42/media/anims_X/Bob/Bob_*.X
+Contents/mods/ImpracticalTransport/42/media/models_X/ImpracticalTransport/*.X
+# palette textures from the tools/blender/* model scripts
+Contents/mods/ImpracticalTransport/42/media/textures/ImpracticalTransport/*_texture.png
+# item icons we drew
+Contents/mods/ImpracticalTransport/42/media/textures/Item_PogoStick.png
+Contents/mods/ImpracticalTransport/42/media/textures/Item_Tricycle.png
+Contents/mods/ImpracticalTransport/42/media/textures/Item_Unicycle.png
+# our hand-written PZ scripts
+Contents/mods/ImpracticalTransport/42/media/scripts/ImpracticalTransport_items.txt
+Contents/mods/ImpracticalTransport/42/media/scripts/ImpracticalTransport_models.txt
+Contents/mods/ImpracticalTransport/42/media/scripts/vehicles/ImpracticalTransport_Tricycle.txt
+# tools/make_preview.py
+preview.png
+Contents/mods/ImpracticalTransport/42/poster.png
