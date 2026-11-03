@@ -451,6 +451,40 @@ commands.smokeloot = function(p, a)
     return true, msg
 end
 
+-- smokescan|x|y|radius: count the containers in the loaded squares around x,y (all floors) by room, and list our items found inside them.
+-- Logs one "SCAN room containers=.. withOurs=.." line per room and a "SCANHIT room container x,y,z Item" line per item. Use after smokechat /teleportto.
+commands.smokescan = function(p, a)
+    local cx, cy, r = tonumber(a and a.a) or p:getX(), tonumber(a and a.b) or p:getY(), tonumber(a and a.c) or 40
+    local cell, rooms, total, squares = getCell(), {}, 0, 0
+    local objs, inroom
+    for z = 0, 3 do for x = cx - r, cx + r do for y = cy - r, cy + r do
+        local sq = cell:getGridSquare(x, y, z)
+        if sq then
+            squares = squares + 1
+            if z == 0 then objs = (objs or 0) + sq:getObjects():size(); if sq:getRoom() then inroom = (inroom or 0) + 1 end end
+            local room = sq:getRoom() and sq:getRoom():getName() or "outside"
+            for i = 0, sq:getObjects():size() - 1 do
+                local c = sq:getObjects():get(i):getContainer()
+                if c then
+                    local rec = rooms[room] or {n = 0, ours = 0}; rooms[room] = rec
+                    rec.n, total = rec.n + 1, total + 1
+                    local hit = false
+                    for k = 0, c:getItems():size() - 1 do
+                        local t = c:getItems():get(k):getFullType()
+                        if t:find("ImpracticalTransport", 1, true) then
+                            hit = true; print(string.format("SCANHIT %s %s %d,%d,%d %s", room, c:getType(), x, y, z, t))
+                        end
+                    end
+                    if hit then rec.ours = rec.ours + 1 end
+                end
+            end
+        end
+    end end end
+    for room, rec in pairs(rooms) do print(string.format("SCAN %s containers=%d withOurs=%d", room, rec.n, rec.ours)) end
+    local msg = "SCAN total containers=" .. total .. " squares=" .. squares .. " z0objs=" .. tostring(objs) .. " inRoom=" .. tostring(inroom) .. " at=" .. cx .. "," .. cy .. " player=" .. math.floor(p:getX()) .. "," .. math.floor(p:getY()) .. "," .. p:getZ()
+    print(msg); return true, msg
+end
+
 -- smokeslowprobe: log the inputs of the mod's vanillaSlowdown() (trees variable, slow factor, slow timer) while moving
 commands.smokeslowprobe = function(p, a)
     local function try(f) local ok, v = pcall(f); return ok and tostring(v) or "ERR" end
