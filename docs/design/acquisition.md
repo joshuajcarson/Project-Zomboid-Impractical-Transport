@@ -23,3 +23,47 @@ The list names were checked against the Build 42 install; `scripts/loot_list_nam
 
 ## Testing (needs a game run)
 Bot command `smokeloot|<ListName>|<n>` (in `scripts/smoke_bot.lua`) rolls the list n times into fresh containers and logs `LOOT <list> n=.. PogoStick=.. ...`, the number of containers that held each item. Not run yet. Example: `smokeloot|CrateToys|1000`, then compare with the weights; also check the log for "loot list not found". A real walk-through (find one in a kids' bedroom in a fresh save) is a human test.
+
+
+## Chances per container (measured with the game's own formula, 2026-11-03)
+Vanilla procedural weights are percent per roll, not shares of a total: the admin LootZed spawn-rate tool computes `1 - (1 - weight * lootModifier / 100) ^ rolls` per container, and `lootModifier` is 0.6 for our items (confirmed by `smokeloot` in game). So vanilla dolls and bears (weight 20) turn up in about 40 percent of toy crates; our weights are set against that. Check any list in a running game with `python scripts/live.py bot smokeloot <List>` (it logs `LOOT list rolls=.. Item=pct%`); `scripts/loot_vanilla_report.py` prints the vanilla weights next to ours.
+
+| list | rolls | item | weight | chance per container |
+|---|---|---|---|---|
+| BedroomDresserChild | 4 | RollerSkates | 3 | 7.0% |
+| BedroomDresserChild | 4 | PogoStick | 3 | 7.0% |
+| BedroomDresserChild | 4 | Tricycle | 1.5 | 3.6% |
+| WardrobeChild | 4 | RollerSkates | 2.5 | 5.9% |
+| WardrobeChild | 4 | PogoStick | 2 | 4.7% |
+| WardrobeChild | 4 | Tricycle | 1 | 2.4% |
+| CrateToys | 4 | PogoStick | 10 | 21.9% |
+| CrateToys | 4 | Tricycle | 6 | 13.6% |
+| CrateToys | 4 | RollerSkates | 6 | 13.6% |
+| GiftStoreToys | 4 | PogoStick | 10 | 21.9% |
+| GiftStoreToys | 4 | Tricycle | 6 | 13.6% |
+| GiftStoreToys | 4 | RollerSkates | 5 | 11.5% |
+| GiftStoreToys | 4 | Unicycle | 1 | 2.4% |
+| GigamartToys | 4 | PogoStick | 10 | 21.9% |
+| GigamartToys | 4 | Tricycle | 6 | 13.6% |
+| GigamartToys | 4 | RollerSkates | 5 | 11.5% |
+| GigamartToys | 4 | Unicycle | 1 | 2.4% |
+| SportStoreSneakers | 4 | RollerSkates | 10 | 21.9% |
+| SportStoreAccessories | 4 | RollerSkates | 8 | 17.9% |
+| SportStoreAccessories | 4 | PogoStick | 4 | 9.3% |
+| SportStoreAccessories | 4 | Unicycle | 1 | 2.4% |
+| ClosetSportsEquipment | 2 | RollerSkates | 6 | 7.1% |
+| ClosetSportsEquipment | 2 | PogoStick | 4 | 4.7% |
+| ClosetSportsEquipment | 2 | Unicycle | 0.5 | 0.6% |
+| SchoolGymSportsGear | 4 | RollerSkates | 6 | 13.6% |
+| SchoolGymSportsGear | 4 | PogoStick | 4 | 9.3% |
+| SchoolGymSportsGear | 4 | Unicycle | 0.5 | 1.2% |
+| CrateSports | 4 | RollerSkates | 8 | 17.9% |
+| CrateSports | 4 | PogoStick | 4 | 9.3% |
+| CrateSports | 4 | Unicycle | 1 | 2.4% |
+| ClosetShelfGeneric | 2 | RollerSkates | 1 | 1.2% |
+| ClosetShelfGeneric | 2 | PogoStick | 1 | 1.2% |
+| ClosetShelfGeneric | 2 | Tricycle | 0.5 | 0.6% |
+| CrateRandomJunk | 1 | RollerSkates | 0.5 | 0.3% |
+| CrateRandomJunk | 1 | PogoStick | 0.5 | 0.3% |
+| CrateRandomJunk | 1 | Tricycle | 0.5 | 0.3% |
+| CrateRandomJunk | 1 | Unicycle | 0.1 | 0.1% |

@@ -11,10 +11,13 @@ A Project Zomboid **Build 42** mod of ridiculous ways to get around, every one o
 | Pogo stick | hold it (two hands) | about 60% of walking speed, trips every minute or so, terrible on mud and sand |
 | Tricycle | hold it, ride it seated | about 35% of walking speed, the pedals slip, sometimes tips you over backwards |
 | Unicycle | hold it, ride it | about 25% of walking speed, constant wobbling, falls |
-| Roller skates | wear them in the shoes slot | glides on after you stop, falls when stopping, slower than walking for now |
-| Inflatable ball with handles, stilts | planned | |
+| Roller skates | wear them in the shoes slot | glides on after you stop, falls when stopping, about 30% faster than walking on pavement and slower on dirt |
+| Stilts | wear them in the shoes slot | about 25% of walking speed, sinks into soft ground, falls |
+| Inflatable ball with handles | planned for a later update | |
 
 Running and sprinting work for all of them (faster, but you trip more), tiredness and heavy loads slow you further, and whatever slows normal walking (brush, injuries) applies on top.
+
+Find them in toy stores, sports stores, kids' bedrooms and wardrobes, and now and then in garages and storage.
 
 ## Install (development builds)
 Copy or symlink `Contents/mods/ImpracticalTransport` into your Project Zomboid `mods` folder and enable **Impractical Transport** in the mods list. Items for testing: as admin, `/additem "<your name>" ImpracticalTransport.PogoStick` (also `Tricycle`, `Unicycle`, `RollerSkates`). Held transports are equipped like a weapon; skates are worn like shoes.
