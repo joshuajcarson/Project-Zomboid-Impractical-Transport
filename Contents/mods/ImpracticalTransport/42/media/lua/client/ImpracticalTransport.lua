@@ -18,7 +18,7 @@ local PROFILES = {
         stumble = 0.0125, stumbleRun = 3.0, stumbleSprint = 6.0,
         -- bounce: every hop clip is 24 frames at 30 fps (tools/blender/pogo_hop.py), so one landing every `period` seconds at every gait and tier. The sound itself is the
         -- PlaySound event on the move nodes (tools/make_gait_nodes.py); this table drives the zombie noise: noiseRadius tiles per landing, 0 = silent to zombies
-        bounce = { period = 0.8, landing = 0.83, noiseRadius = 12 },
+        bounce = { period = 0.8, landing = 0.83, noiseRadius = 30 },
     },
     -- a child's tricycle under a grown rider: slow and tiring, but it rarely throws the rider
     ["ImpracticalTransport.Tricycle"] = {

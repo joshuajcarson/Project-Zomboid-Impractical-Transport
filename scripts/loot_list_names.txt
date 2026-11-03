@@ -10,3 +10,4 @@ CrateSports
 SportStoreSneakers
 ClosetShelfGeneric
 CrateRandomJunk
+SportStoreAccessories

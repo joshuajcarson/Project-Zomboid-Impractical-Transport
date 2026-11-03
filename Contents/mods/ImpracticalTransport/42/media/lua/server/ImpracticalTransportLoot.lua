@@ -4,16 +4,18 @@ require "Items/ProceduralDistributions"
 
 local PLACES = {
     -- kids' rooms
-    BedroomDresserChild = { RollerSkates = 3, PogoStick = 2, Tricycle = 1 },
-    WardrobeChild = { RollerSkates = 2, PogoStick = 1.5, Tricycle = 0.7 },
-    -- toys and sport
-    CrateToys = { PogoStick = 4, Tricycle = 3, RollerSkates = 3 },
-    GiftStoreToys = { PogoStick = 4, Tricycle = 2, RollerSkates = 3, Unicycle = 0.3 },
-    GigamartToys = { PogoStick = 4, Tricycle = 2, RollerSkates = 3, Unicycle = 0.3 },
-    ClosetSportsEquipment = { RollerSkates = 4, PogoStick = 3, Unicycle = 0.5 },
-    SchoolGymSportsGear = { RollerSkates = 3, PogoStick = 2, Unicycle = 0.5 },
-    CrateSports = { RollerSkates = 3, Unicycle = 0.5 },
-    SportStoreSneakers = { RollerSkates = 4 },
+    BedroomDresserChild = { RollerSkates = 3, PogoStick = 3, Tricycle = 1.5 },
+    WardrobeChild = { RollerSkates = 2.5, PogoStick = 2, Tricycle = 1 },
+    -- toy stores: as common as the vanilla toys there (dolls, bears and bricks are 10-20)
+    CrateToys = { PogoStick = 10, Tricycle = 6, RollerSkates = 6 },
+    GiftStoreToys = { PogoStick = 10, Tricycle = 6, RollerSkates = 5, Unicycle = 1 },
+    GigamartToys = { PogoStick = 10, Tricycle = 6, RollerSkates = 5, Unicycle = 1 },
+    -- sports: skates sit with the other shoes (vanilla trainers are 10 each)
+    SportStoreSneakers = { RollerSkates = 10 },
+    SportStoreAccessories = { RollerSkates = 8, PogoStick = 4, Unicycle = 1 },
+    ClosetSportsEquipment = { RollerSkates = 6, PogoStick = 4, Unicycle = 0.5 },
+    SchoolGymSportsGear = { RollerSkates = 6, PogoStick = 4, Unicycle = 0.5 },
+    CrateSports = { RollerSkates = 8, PogoStick = 4, Unicycle = 1 },
     -- house storage, garages, junk
     ClosetShelfGeneric = { RollerSkates = 1, PogoStick = 1, Tricycle = 0.5 },
     CrateRandomJunk = { RollerSkates = 0.5, PogoStick = 0.5, Tricycle = 0.5, Unicycle = 0.1 },

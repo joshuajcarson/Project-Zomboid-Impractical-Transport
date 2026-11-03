@@ -432,25 +432,21 @@ commands.smokeinv = function(p, a)
     return true, "logged"
 end
 
--- smokeloot|ListName|n: roll the vanilla procedural list `ListName` n times (default 500) into fresh containers, like the game's own loot stress test (ISLootStressTestUI), and log
--- how many containers held each of our items ("LOOT list n=.. PogoStick=.. ..."). Compare with the weights in ImpracticalTransportLoot.lua. Never run yet.
+-- smokeloot|ListName|ref: the chance per container of each of our items and of a vanilla reference item in the merged procedural list, by the game's own formula
+-- (the admin LootZed spawn-rate tool: per roll weight * ItemPickerJava.getLootModifier / 100, over the list's rolls). Logs "LOOT list rolls=.. Item=pct% ..".
 commands.smokeloot = function(p, a)
-    local list, n = (a and a.a) or "BedroomDresserChild", tonumber(a and a.b) or 500
+    local list, ref = (a and a.a) or "CrateToys", (a and a.b) or "Base.Doll"
     local dist = ProceduralDistributions.list[list]
     if not dist then return false, "no list " .. list end
-    local hit = {}
-    for _ = 1, n do
-        local c = ItemContainer.new("smokeloot", p:getCurrentSquare(), p)
-        ItemPickerJava.doRollItem(dist, c, 1, p, true, false)
-        local seen = {}
-        for i = 0, c:getItems():size() - 1 do
-            local t = c:getItems():get(i):getFullType()
-            if t:find("ImpracticalTransport", 1, true) and not seen[t] then seen[t] = true; hit[t] = (hit[t] or 0) + 1 end
+    local out, rolls = {}, dist.rolls
+    for i = 1, #dist.items, 2 do
+        local name, w = dist.items[i], dist.items[i + 1]
+        if name:find("ImpracticalTransport", 1, true) or name == ref then
+            local chance = w * ItemPickerJava.getLootModifier(name) / 100
+            out[#out + 1] = string.format("%s=%.1f%%", name:gsub("^.-%.", ""), 100 * (1 - (1 - chance) ^ rolls))
         end
     end
-    local out = {}
-    for t, k in pairs(hit) do out[#out + 1] = t:gsub("ImpracticalTransport%.", "") .. "=" .. k end
-    local msg = "LOOT " .. list .. " n=" .. n .. " " .. table.concat(out, " ")
+    local msg = "LOOT " .. list .. " rolls=" .. rolls .. " " .. table.concat(out, " ")
     print(msg)
     return true, msg
 end
