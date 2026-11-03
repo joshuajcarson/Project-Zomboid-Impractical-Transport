@@ -9,9 +9,9 @@ module Base
 
         attachment Bip01_Prop1
         {
-            /* The held-item bone (Bip01_Prop1) is rolled 16.8 degrees about the rider's forward axis in the pose (measured in Blender, confirmed in game 2026-11-01 at the screen facings): R = Ry(16.8) Rx(90), written as rotate 90 0 -16.8. Pitch 90 stands the stick upright (the old 102 leaned it back). The offset cancels the grip point (0.69 up the stick) after the turn. */
+            /* The held-item bone (Bip01_Prop1) is rolled 16.8 degrees about the rider's forward axis in the pose (measured in Blender, confirmed in game 2026-11-01 at the screen facings): R = Ry(16.8) Rx(90), written as rotate 90 0 -16.8. Pitch 90 stands the stick upright (the old 102 leaned it back). The offset cancels the grip point (0.69 up the stick) after the turn, then y is +0.1 to carry the stick slightly in front of the rider (+y is forward; 0.2 was too far for the hands). */
             rotate = 90.0000 0.0000 -16.8000,
-            offset = -0.0989 -0.0001 -0.6909,
+            offset = -0.0989 0.1000 -0.6909,
         }
     }
 
